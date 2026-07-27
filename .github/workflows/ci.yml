@@ -32,11 +32,13 @@ jobs:
       SEED_ADMIN_PASSWORD: ci-only-seed-password
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
       - uses: actions/setup-node@v4
         with:
           cache: pnpm
           node-version-file: .nvmrc
-      - run: corepack prepare pnpm@10.14.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
