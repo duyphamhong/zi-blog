@@ -1,16 +1,26 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+import { headers } from 'next/headers'
 
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SiteHeader } from '@/components/layout/SiteHeader'
-import { getPublicNavigation, getPublicSiteSettings } from '@/modules/platform'
+import {
+  DEFAULT_CONTENT_LOCALE,
+  getDictionary,
+  getPublicNavigation,
+  getPublicSiteSettings,
+  LOCALE_METADATA,
+  parseContentLocale,
+} from '@/modules/platform'
 
 import './globals.css'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getPublicSiteSettings()
+  const locale =
+    parseContentLocale((await headers()).get('x-zi-blog-locale')) ?? DEFAULT_CONTENT_LOCALE
+  const settings = await getPublicSiteSettings(locale)
   return {
     description: settings.defaultSeoDescription || settings.siteDescription,
     metadataBase: new URL(settings.siteUrl),
@@ -22,20 +32,30 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function FrontendLayout({ children }: { children: ReactNode }) {
-  const [settings, navigation] = await Promise.all([getPublicSiteSettings(), getPublicNavigation()])
+  const locale =
+    parseContentLocale((await headers()).get('x-zi-blog-locale')) ?? DEFAULT_CONTENT_LOCALE
+  const [settings, navigation, dictionary] = await Promise.all([
+    getPublicSiteSettings(locale),
+    getPublicNavigation(locale),
+    getDictionary(locale),
+  ])
 
   return (
-    <html data-dark-mode={settings.enableDarkMode ? 'true' : 'false'} lang="en">
+    <html
+      data-dark-mode={settings.enableDarkMode ? 'true' : 'false'}
+      lang={LOCALE_METADATA[locale].htmlLang}
+      suppressHydrationWarning
+    >
       <body>
         <a
           className="sr-only z-50 rounded bg-white p-3 text-slate-950 focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
           href="#main-content"
         >
-          Skip to content
+          {dictionary.accessibility.skipToContent}
         </a>
-        <SiteHeader navigation={navigation} />
+        <SiteHeader dictionary={dictionary} locale={locale} navigation={navigation} />
         <main id="main-content">{children}</main>
-        <SiteFooter navigation={navigation} />
+        <SiteFooter dictionary={dictionary} navigation={navigation} />
       </body>
     </html>
   )

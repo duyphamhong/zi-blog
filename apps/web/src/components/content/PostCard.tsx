@@ -1,25 +1,33 @@
 import Link from 'next/link'
 
 import type { PostSummary } from '@/modules/content'
-import { formatPublicationDate } from '@/shared/formatting/date'
+import { formatDate, localePath, type AppDictionary, type ContentLocale } from '@/modules/platform'
 
 import { ResponsiveMedia } from './ResponsiveMedia'
 import { TaxonomyLinks } from './TaxonomyLinks'
 
-export function PostCard({ post }: { post: PostSummary }) {
+export function PostCard({
+  dictionary,
+  locale,
+  post,
+}: {
+  dictionary: AppDictionary
+  locale: ContentLocale
+  post: PostSummary
+}) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg motion-reduce:transition-none dark:border-slate-800 dark:bg-slate-900">
       {post.coverImage ? (
-        <Link href={`/posts/${post.slug}`} tabIndex={-1}>
+        <Link href={localePath(locale, `/posts/${post.slug}`)} tabIndex={-1}>
           <ResponsiveMedia className="aspect-[16/9] w-full object-cover" media={post.coverImage} />
         </Link>
       ) : null}
       <div className="space-y-4 p-6">
-        <TaxonomyLinks category={post.category} tags={post.tags.slice(0, 2)} />
+        <TaxonomyLinks category={post.category} locale={locale} tags={post.tags.slice(0, 2)} />
         <h2 className="text-xl font-extrabold leading-tight">
           <Link
             className="hover:text-cyan-700 focus-visible:outline-2 focus-visible:outline-cyan-600 dark:hover:text-cyan-300"
-            href={`/posts/${post.slug}`}
+            href={localePath(locale, `/posts/${post.slug}`)}
           >
             {post.title}
           </Link>
@@ -28,11 +36,15 @@ export function PostCard({ post }: { post: PostSummary }) {
           {post.excerpt}
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          By{' '}
-          <Link className="font-semibold hover:underline" href={`/authors/${post.author.username}`}>
+          {dictionary.common.by}{' '}
+          <Link
+            className="font-semibold hover:underline"
+            href={localePath(locale, `/authors/${post.author.username}`)}
+          >
             {post.author.displayName}
           </Link>{' '}
-          · {formatPublicationDate(post.publishedAt)} · {post.readingTimeMinutes} min read
+          · {formatDate(post.publishedAt, locale)} · {post.readingTimeMinutes}{' '}
+          {dictionary.post.minRead}
         </p>
       </div>
     </article>

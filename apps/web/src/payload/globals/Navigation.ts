@@ -3,7 +3,13 @@ import type { Field, GlobalConfig } from 'payload'
 import { editorOrSuperAdmin, isActiveStaff } from '@/modules/identity'
 
 const linkFields: Field[] = [
-  { name: 'label', type: 'text', required: true },
+  {
+    name: 'label',
+    type: 'text',
+    label: { en: 'Label', vi: 'Nhãn' },
+    localized: true,
+    required: true,
+  },
   {
     name: 'type',
     type: 'select',
@@ -38,6 +44,7 @@ const linkFields: Field[] = [
 
 export const Navigation: GlobalConfig = {
   slug: 'navigation',
+  label: { en: 'Navigation', vi: 'Điều hướng' },
   access: {
     read: ({ req }) => isActiveStaff(req.user),
     update: editorOrSuperAdmin,
@@ -45,7 +52,12 @@ export const Navigation: GlobalConfig = {
   fields: [
     { name: 'headerLinks', type: 'array', fields: linkFields, maxRows: 10 },
     { name: 'footerLinks', type: 'array', fields: linkFields, maxRows: 20 },
-    { name: 'footerText', type: 'textarea' },
+    {
+      name: 'footerText',
+      type: 'textarea',
+      label: { en: 'Footer text', vi: 'Nội dung chân trang' },
+      localized: true,
+    },
     {
       name: 'socialLinks',
       type: 'array',

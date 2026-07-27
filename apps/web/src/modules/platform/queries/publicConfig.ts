@@ -1,5 +1,10 @@
+import { unstable_cache } from 'next/cache'
+
 import type { Navigation, SiteSetting } from '@/payload-types'
 import { getPayloadClient } from '@/shared/payload/client'
+
+import { cacheTags } from '../cache/tags'
+import { localePath, type ContentLocale } from '../i18n'
 
 export type PublicSiteSettings = Pick<
   SiteSetting,
@@ -25,34 +30,39 @@ export type PublicNavigation = {
   socialLinks: { label: string; url: string }[]
 }
 
-function referenceHref(reference: unknown): string | null {
+function referenceHref(reference: unknown, locale: ContentLocale): string | null {
   if (!reference || typeof reference !== 'object' || !('relationTo' in reference)) return null
   if (!('value' in reference) || !reference.value || typeof reference.value !== 'object')
     return null
   if (!('slug' in reference.value) || typeof reference.value.slug !== 'string') return null
 
-  if (reference.relationTo === 'posts') return `/posts/${reference.value.slug}`
-  if (reference.relationTo === 'categories') return `/categories/${reference.value.slug}`
-  if (reference.relationTo === 'series') return `/series/${reference.value.slug}`
+  if (reference.relationTo === 'posts') return localePath(locale, `/posts/${reference.value.slug}`)
+  if (reference.relationTo === 'categories')
+    return localePath(locale, `/categories/${reference.value.slug}`)
+  if (reference.relationTo === 'series')
+    return localePath(locale, `/series/${reference.value.slug}`)
   return null
 }
 
 function projectLinks(
   links: Navigation['headerLinks'] | Navigation['footerLinks'],
+  locale: ContentLocale,
 ): PublicNavigationLink[] {
   return (
     links?.flatMap((link) => {
-      const href = link.type === 'external' ? link.url : referenceHref(link.reference)
+      const href = link.type === 'external' ? link.url : referenceHref(link.reference, locale)
       return href ? [{ href, label: link.label, openInNewTab: Boolean(link.openInNewTab) }] : []
     }) ?? []
   )
 }
 
-async function queryPublicSiteSettings(): Promise<PublicSiteSettings> {
+async function queryPublicSiteSettings(locale: ContentLocale): Promise<PublicSiteSettings> {
   const payload = await getPayloadClient()
   const settings = await payload.findGlobal({
     slug: 'site-settings',
     depth: 1,
+    fallbackLocale: false,
+    locale,
     overrideAccess: true,
   })
   return {
@@ -68,25 +78,27 @@ async function queryPublicSiteSettings(): Promise<PublicSiteSettings> {
 
 const getPublicSiteSettingsCached = unstable_cache(
   queryPublicSiteSettings,
-  ['public-site-settings'],
+  ['public-site-settings-by-locale'],
   { revalidate: 300, tags: [cacheTags.settings] },
 )
 
-export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
-  return getPublicSiteSettingsCached()
+export function getPublicSiteSettings(locale: ContentLocale): Promise<PublicSiteSettings> {
+  return getPublicSiteSettingsCached(locale)
 }
 
-async function queryPublicNavigation(): Promise<PublicNavigation> {
+async function queryPublicNavigation(locale: ContentLocale): Promise<PublicNavigation> {
   const payload = await getPayloadClient()
   const navigation = await payload.findGlobal({
     slug: 'navigation',
     depth: 2,
+    fallbackLocale: false,
+    locale,
     overrideAccess: true,
   })
   return {
-    footerLinks: projectLinks(navigation.footerLinks),
+    footerLinks: projectLinks(navigation.footerLinks, locale),
     footerText: navigation.footerText,
-    headerLinks: projectLinks(navigation.headerLinks),
+    headerLinks: projectLinks(navigation.headerLinks, locale),
     socialLinks:
       navigation.socialLinks?.map(({ label, url }) => ({
         label,
@@ -95,14 +107,12 @@ async function queryPublicNavigation(): Promise<PublicNavigation> {
   }
 }
 
-const getPublicNavigationCached = unstable_cache(queryPublicNavigation, ['public-navigation'], {
-  revalidate: 300,
-  tags: [cacheTags.navigation],
-})
+const getPublicNavigationCached = unstable_cache(
+  queryPublicNavigation,
+  ['public-navigation-by-locale'],
+  { revalidate: 300, tags: [cacheTags.navigation] },
+)
 
-export async function getPublicNavigation(): Promise<PublicNavigation> {
-  return getPublicNavigationCached()
+export function getPublicNavigation(locale: ContentLocale): Promise<PublicNavigation> {
+  return getPublicNavigationCached(locale)
 }
-import { unstable_cache } from 'next/cache'
-
-import { cacheTags } from '@/modules/platform/cache/tags'

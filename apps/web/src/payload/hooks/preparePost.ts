@@ -1,22 +1,43 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
-import { calculateReadingTime } from '@/modules/content/validation'
+import {
+  assertTranslationReady,
+  calculateReadingTime,
+  inspectPostTranslations,
+} from '@/modules/content/validation'
 import { getActor } from '@/modules/identity'
 
 function isSeedRequest(context: unknown): boolean {
   return Boolean(context && typeof context === 'object' && 'seed' in context && context.seed)
 }
 
-export const preparePost: CollectionBeforeChangeHook = ({ data, operation, originalDoc, req }) => {
+export const preparePost: CollectionBeforeChangeHook = async ({
+  data,
+  operation,
+  originalDoc,
+  req,
+}) => {
   const actor = getActor(req.user)
   const seedRequest = isSeedRequest(req.context)
   const nextStatus = data._status ?? originalDoc?._status ?? 'draft'
+  const isPublicationTransition =
+    nextStatus === 'published' && (operation === 'create' || originalDoc?._status !== 'published')
 
   if (!seedRequest && actor?.role === 'author') {
     if (nextStatus === 'published') {
       throw new Error('Authors cannot publish posts in Phase 1')
     }
     if (operation === 'create') data.author = actor.id
+  }
+
+  if (!seedRequest && isPublicationTransition) {
+    const readiness = await inspectPostTranslations({
+      id: originalDoc?.id,
+      payload: req.payload,
+      pendingData: data,
+      pendingLocale: req.locale,
+    })
+    assertTranslationReady(readiness, req.locale)
   }
 
   const content = data.content ?? originalDoc?.content

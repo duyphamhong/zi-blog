@@ -32,6 +32,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URI: postgresql://${POSTGRES_USER:-blog}:${POSTGRES_PASSWORD:-blog}@postgres:5432/${POSTGRES_DB:-blog}
+      LEGACY_CONTENT_LOCALE: ${LEGACY_CONTENT_LOCALE:-}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}
       NODE_ENV: production
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:-replace-with-a-long-random-secret-at-least-32-characters}

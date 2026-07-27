@@ -25,6 +25,7 @@ jobs:
     env:
       DATABASE_URI: postgresql://blog:blog@127.0.0.1:5432/blog
       ENABLE_SEED_SAMPLE_CONTENT: 'true'
+      LEGACY_CONTENT_LOCALE: en
       NEXT_PUBLIC_SERVER_URL: http://127.0.0.1:3000
       PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
       SEED_ADMIN_EMAIL: admin@example.com

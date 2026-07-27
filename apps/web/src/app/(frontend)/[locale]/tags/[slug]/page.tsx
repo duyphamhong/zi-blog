@@ -1,0 +1,48 @@
+import { notFound } from 'next/navigation'
+
+import { Pagination } from '@/components/content/Pagination'
+import { PostList } from '@/components/content/PostList'
+import { EmptyState } from '@/components/feedback/EmptyState'
+import { Container } from '@/components/layout/Container'
+import { getPostsByTagSlug, getPublicTagBySlug } from '@/modules/content'
+import { getDictionary, localePath, parseContentLocale } from '@/modules/platform'
+
+export default async function TagPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string; slug: string }>
+  searchParams: Promise<{ page?: string }>
+}) {
+  const [route, query] = await Promise.all([params, searchParams])
+  const locale = parseContentLocale(route.locale)
+  if (!locale) notFound()
+  const page = Number(query.page) || 1
+  const [tag, posts, dictionary] = await Promise.all([
+    getPublicTagBySlug({ locale, slug: route.slug }),
+    getPostsByTagSlug({ locale, page, slug: route.slug }),
+    getDictionary(locale),
+  ])
+  if (!tag) notFound()
+  return (
+    <Container className="py-12">
+      <p className="text-sm font-black uppercase tracking-[0.2em] text-cyan-700">
+        {dictionary.common.tag}
+      </p>
+      <h1 className="mt-3 text-4xl font-black">#{tag.name}</h1>
+      {tag.description ? <p className="mt-4 max-w-2xl text-slate-600">{tag.description}</p> : null}
+      <div className="mt-10">
+        {posts.posts.length ? (
+          <PostList dictionary={dictionary} locale={locale} posts={posts.posts} />
+        ) : (
+          <EmptyState description={dictionary.post.tagEmpty} />
+        )}
+      </div>
+      <Pagination
+        basePath={localePath(locale, `/tags/${route.slug}`)}
+        dictionary={dictionary}
+        {...posts}
+      />
+    </Container>
+  )
+}

@@ -1,9 +1,9 @@
 # Zi-Blog
 
-Zi-Blog is a Phase 1 technology-blog scaffold built as one Next.js and Payload CMS
-application. It provides a Payload Admin workspace, a PostgreSQL-backed content
-model, and a public blog that only reads published content through centralized
-server-side queries.
+Zi-Blog is a bilingual Vietnamese and English technology blog built as one
+Next.js and Payload CMS application. It provides a localized Payload Admin
+workspace, a PostgreSQL-backed content model, and a public blog that only reads
+published content through centralized, locale-explicit server-side queries.
 
 ## Selected versions
 
@@ -52,13 +52,15 @@ pnpm seed
 pnpm dev
 ```
 
-- Public site: <http://localhost:3000>
+- Vietnamese site: <http://localhost:3000/vi>
+- English site: <http://localhost:3000/en>
 - Payload Admin: <http://localhost:3000/admin>
 - Liveness: <http://localhost:3000/api/health/live>
 - Readiness: <http://localhost:3000/api/health/ready>
 
-The seed is idempotent. It creates an administrator, an author, taxonomy data,
-one series, site/navigation globals, two published posts, and one draft post.
+The seed is idempotent. It creates one logical record for each bilingual author,
+taxonomy, series, and post, plus localized site/navigation globals. Two posts
+are published and one remains a draft.
 
 ### VS Code
 
@@ -96,7 +98,9 @@ pnpm db:migrate:down
 ```
 
 Production uses committed migrations and disables schema push. See
-`docs/development/migrations.md` for the full workflow.
+`docs/development/migrations.md` for the development workflow and
+`docs/operations/phase-2-localization-migration.md` for the required Phase 2
+backup, source-language audit, deployment, verification, and rollback steps.
 
 ## Validation
 
@@ -132,9 +136,10 @@ PostgreSQL service database.
 - Media disappears after container recreation: confirm the `web_media` volume
   exists; do not use container-local storage for durable production uploads.
 
-## Phase 1 limitations
+## Current limitations
 
-This is a runnable foundation, not a complete production blog. Public
-registration, comments, reactions, analytics, scheduled publishing, external
-search, background workers, Redis, object storage, multi-language, and
-multi-tenancy are explicitly deferred.
+Publication state remains shared by both translations because Payload's native
+localized drafts are experimental in the installed release. Both translations
+must be complete before a new publish transition. Public registration, comments,
+reactions, analytics, scheduled publishing, external search, background workers,
+Redis, object storage, and multi-tenancy remain deferred.

@@ -2,7 +2,14 @@ import { unstable_cache } from 'next/cache'
 import type { Where } from 'payload'
 
 import { env } from '@/config/env'
-import { cacheTags } from '@/modules/platform/cache/tags'
+import { getActor } from '@/modules/identity'
+import {
+  CONTENT_LOCALES,
+  cacheTags,
+  localizedPostPath,
+  type ContentLocale,
+} from '@/modules/platform'
+import { searchLocalizedDocuments } from '@/modules/search'
 import { getPayloadClient } from '@/shared/payload/client'
 
 import {
@@ -12,7 +19,14 @@ import {
   projectSeries,
   projectTag,
 } from './projections'
-import type { PaginatedPosts, PostDetail, PostSummary, PublicSeries, PublicTaxonomy } from './types'
+import type {
+  LocalizedUrls,
+  PaginatedPosts,
+  PostDetail,
+  PostSummary,
+  PublicSeries,
+  PublicTaxonomy,
+} from './types'
 
 const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 50
@@ -23,6 +37,7 @@ const postSummarySelect = {
   coverImage: true,
   excerpt: true,
   featured: true,
+  id: true,
   publishedAt: true,
   readingTimeMinutes: true,
   series: true,
@@ -33,7 +48,14 @@ const postSummarySelect = {
 } as const
 
 const publicFeedWhere: Where = {
-  and: [{ _status: { equals: 'published' } }, { visibility: { equals: 'public' } }],
+  and: [
+    { _status: { equals: 'published' } },
+    { visibility: { equals: 'public' } },
+    { title: { exists: true } },
+    { slug: { exists: true } },
+    { excerpt: { exists: true } },
+    { content: { exists: true } },
+  ],
 }
 
 function positiveInteger(value: number | undefined, fallback: number): number {
@@ -45,6 +67,7 @@ function pageSize(value: number | undefined): number {
 }
 
 async function findPostPage(input: {
+  locale: ContentLocale
   page?: number
   limit?: number
   where?: Where
@@ -55,17 +78,15 @@ async function findPostPage(input: {
     collection: 'posts',
     depth: 2,
     draft: false,
+    fallbackLocale: false,
     limit: pageSize(input.limit),
+    locale: input.locale,
     overrideAccess: true,
     page: positiveInteger(input.page, 1),
     pagination: true,
     select: postSummarySelect,
     sort: input.sort ?? '-publishedAt',
-    where: input.where
-      ? {
-          and: [publicFeedWhere, input.where],
-        }
-      : publicFeedWhere,
+    where: input.where ? { and: [publicFeedWhere, input.where] } : publicFeedWhere,
   })
 
   return {
@@ -77,54 +98,72 @@ async function findPostPage(input: {
   }
 }
 
-export async function getLatestPosts(
-  input: {
-    limit?: number
-    page?: number
-  } = {},
-): Promise<PaginatedPosts> {
-  return getLatestPostsCached(input)
+export function getLatestPosts(input: {
+  locale: ContentLocale
+  limit?: number
+  page?: number
+}): Promise<PaginatedPosts> {
+  return unstable_cache(
+    () => findPostPage(input),
+    [
+      'latest-posts',
+      input.locale,
+      String(input.page ?? 1),
+      String(input.limit ?? DEFAULT_PAGE_SIZE),
+    ],
+    {
+      revalidate: 300,
+      tags: [cacheTags.locale.feed(input.locale)],
+    },
+  )()
 }
 
-const getLatestPostsCached = unstable_cache(
-  (input: { limit?: number; page?: number }) => findPostPage(input),
-  ['latest-posts'],
-  { revalidate: 300, tags: [cacheTags.posts] },
-)
-
-export async function getFeaturedPosts(input: { limit?: number } = {}): Promise<PostSummary[]> {
-  return getFeaturedPostsCached(input)
+export function getFeaturedPosts(input: {
+  locale: ContentLocale
+  limit?: number
+}): Promise<PostSummary[]> {
+  return unstable_cache(
+    async () =>
+      (
+        await findPostPage({
+          ...input,
+          limit: input.limit ?? 3,
+          where: { featured: { equals: true } },
+        })
+      ).posts,
+    ['featured-posts', input.locale, String(input.limit ?? 3)],
+    {
+      revalidate: 300,
+      tags: [cacheTags.locale.feed(input.locale)],
+    },
+  )()
 }
 
-const getFeaturedPostsCached = unstable_cache(
-  async (input: { limit?: number }) => {
-    const page = await findPostPage({
-      limit: input.limit ?? 3,
-      where: { featured: { equals: true } },
-    })
-    return page.posts
-  },
-  ['featured-posts'],
-  { revalidate: 300, tags: [cacheTags.posts] },
-)
-
-async function queryHomePageContent(): Promise<{
+async function queryHomePageContent(locale: ContentLocale): Promise<{
   categories: { name: string; slug: string }[]
   featured: PostSummary[]
   latest: PaginatedPosts
 }> {
   const payload = await getPayloadClient()
   const [featured, latest, categories] = await Promise.all([
-    getFeaturedPosts({ limit: 3 }),
-    getLatestPosts({ limit: 9 }),
+    getFeaturedPosts({ limit: 3, locale }),
+    getLatestPosts({ limit: 9, locale }),
     payload.find({
       collection: 'categories',
       depth: 0,
+      fallbackLocale: false,
       limit: 20,
+      locale,
       overrideAccess: true,
       pagination: false,
       sort: ['displayOrder', 'name'],
-      where: { isActive: { equals: true } },
+      where: {
+        and: [
+          { isActive: { equals: true } },
+          { name: { exists: true } },
+          { slug: { exists: true } },
+        ],
+      },
     }),
   ])
   return {
@@ -134,22 +173,25 @@ async function queryHomePageContent(): Promise<{
   }
 }
 
-const getHomePageContentCached = unstable_cache(queryHomePageContent, ['home-page-content'], {
-  revalidate: 300,
-  tags: [cacheTags.posts, cacheTags.categories],
-})
-
-export async function getHomePageContent(): ReturnType<typeof queryHomePageContent> {
-  return getHomePageContentCached()
+export function getHomePageContent(locale: ContentLocale): ReturnType<typeof queryHomePageContent> {
+  return unstable_cache(() => queryHomePageContent(locale), ['home-page', locale], {
+    revalidate: 300,
+    tags: [cacheTags.locale.feed(locale)],
+  })()
 }
 
-async function queryPublishedPostBySlug(slug: string): Promise<PostDetail | null> {
+async function queryPublishedPostBySlug(
+  locale: ContentLocale,
+  slug: string,
+): Promise<PostDetail | null> {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'posts',
     depth: 2,
     draft: false,
+    fallbackLocale: false,
     limit: 1,
+    locale,
     overrideAccess: true,
     pagination: false,
     where: {
@@ -157,6 +199,9 @@ async function queryPublishedPostBySlug(slug: string): Promise<PostDetail | null
         { slug: { equals: slug } },
         { _status: { equals: 'published' } },
         { visibility: { in: ['public', 'unlisted'] } },
+        { title: { exists: true } },
+        { excerpt: { exists: true } },
+        { content: { exists: true } },
       ],
     },
   })
@@ -164,227 +209,247 @@ async function queryPublishedPostBySlug(slug: string): Promise<PostDetail | null
   return post ? projectPostDetail(post) : null
 }
 
-const getPublishedPostBySlugCached = unstable_cache(
-  queryPublishedPostBySlug,
-  ['published-post-by-slug'],
-  { revalidate: 3600, tags: [cacheTags.posts] },
-)
-
-export async function getPublishedPostBySlug(slug: string): Promise<PostDetail | null> {
+export function getPublishedPostBySlug(input: {
+  locale: ContentLocale
+  slug: string
+}): Promise<PostDetail | null> {
   return env.NODE_ENV === 'test'
-    ? queryPublishedPostBySlug(slug)
-    : getPublishedPostBySlugCached(slug)
+    ? queryPublishedPostBySlug(input.locale, input.slug)
+    : unstable_cache(
+        () => queryPublishedPostBySlug(input.locale, input.slug),
+        ['published-post', input.locale, input.slug],
+        {
+          revalidate: 3600,
+          tags: [cacheTags.locale.postSlug(input.locale, input.slug)],
+        },
+      )()
 }
 
-export async function getPostsByCategorySlug(input: {
+function relationIdentifier(value: unknown): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (!value || typeof value !== 'object' || !('id' in value)) return null
+  const id = value.id
+  return typeof id === 'number' || typeof id === 'string' ? id : null
+}
+
+export async function getAuthorizedDraftPost(input: {
+  headers: Headers
+  id: number
+  locale: ContentLocale
+}): Promise<PostDetail | null> {
+  const payload = await getPayloadClient()
+  const { user } = await payload.auth({ headers: input.headers })
+  const actor = getActor(user)
+  if (!actor || actor.status === 'disabled') return null
+
+  const post = await payload.findByID({
+    collection: 'posts',
+    depth: 2,
+    draft: true,
+    fallbackLocale: false,
+    id: input.id,
+    locale: input.locale,
+    overrideAccess: true,
+  })
+  if (actor.role === 'author' && String(relationIdentifier(post.author)) !== String(actor.id)) {
+    return null
+  }
+  return post.title && post.slug && post.excerpt && post.content
+    ? projectPostDetail({ ...post, publishedAt: post.publishedAt ?? post.updatedAt })
+    : null
+}
+
+export async function getAlternatePostUrls(postId: number): Promise<LocalizedUrls> {
+  const payload = await getPayloadClient()
+  const entries = await Promise.all(
+    CONTENT_LOCALES.map(async (locale) => {
+      const post = await payload.findByID({
+        collection: 'posts',
+        depth: 0,
+        draft: false,
+        fallbackLocale: false,
+        id: postId,
+        locale,
+        overrideAccess: true,
+      })
+      return post._status === 'published' &&
+        (post.visibility === 'public' || post.visibility === 'unlisted') &&
+        post.title &&
+        post.slug &&
+        post.excerpt &&
+        post.content
+        ? ([locale, localizedPostPath(locale, post.slug)] as const)
+        : null
+    }),
+  )
+  return Object.fromEntries(entries.filter((entry) => entry !== null)) as LocalizedUrls
+}
+
+export function getPostsByCategorySlug(input: {
+  locale: ContentLocale
   slug: string
   limit?: number
   page?: number
 }): Promise<PaginatedPosts> {
-  return getPostsByCategorySlugCached(input)
+  return findPostPage({ ...input, where: { 'category.slug': { equals: input.slug } } })
 }
 
-const getPostsByCategorySlugCached = unstable_cache(
-  (input: { slug: string; limit?: number; page?: number }) =>
-    findPostPage({
-      ...input,
-      where: { 'category.slug': { equals: input.slug } },
-    }),
-  ['posts-by-category'],
-  { revalidate: 300, tags: [cacheTags.posts, cacheTags.categories] },
-)
-
-async function queryPublicCategoryBySlug(slug: string): Promise<PublicTaxonomy | null> {
+export async function getPublicCategoryBySlug(input: {
+  locale: ContentLocale
+  slug: string
+}): Promise<PublicTaxonomy | null> {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'categories',
     depth: 0,
+    fallbackLocale: false,
     limit: 1,
+    locale: input.locale,
     overrideAccess: true,
     pagination: false,
     where: {
-      and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
+      and: [
+        { slug: { equals: input.slug } },
+        { isActive: { equals: true } },
+        { name: { exists: true } },
+      ],
     },
   })
   return result.docs[0] ? projectCategory(result.docs[0]) : null
 }
 
-const getPublicCategoryBySlugCached = unstable_cache(
-  queryPublicCategoryBySlug,
-  ['public-category-by-slug'],
-  { revalidate: 300, tags: [cacheTags.categories] },
-)
-
-export async function getPublicCategoryBySlug(slug: string): Promise<PublicTaxonomy | null> {
-  return getPublicCategoryBySlugCached(slug)
-}
-
-export async function getPostsByTagSlug(input: {
+export function getPostsByTagSlug(input: {
+  locale: ContentLocale
   slug: string
   limit?: number
   page?: number
 }): Promise<PaginatedPosts> {
-  return getPostsByTagSlugCached(input)
+  return findPostPage({ ...input, where: { 'tags.slug': { equals: input.slug } } })
 }
 
-const getPostsByTagSlugCached = unstable_cache(
-  (input: { slug: string; limit?: number; page?: number }) =>
-    findPostPage({
-      ...input,
-      where: { 'tags.slug': { equals: input.slug } },
-    }),
-  ['posts-by-tag'],
-  { revalidate: 300, tags: [cacheTags.posts, cacheTags.tags] },
-)
-
-async function queryPublicTagBySlug(slug: string): Promise<PublicTaxonomy | null> {
+export async function getPublicTagBySlug(input: {
+  locale: ContentLocale
+  slug: string
+}): Promise<PublicTaxonomy | null> {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'tags',
     depth: 0,
+    fallbackLocale: false,
     limit: 1,
+    locale: input.locale,
     overrideAccess: true,
     pagination: false,
-    where: { slug: { equals: slug } },
+    where: { and: [{ slug: { equals: input.slug } }, { name: { exists: true } }] },
   })
   return result.docs[0] ? projectTag(result.docs[0]) : null
 }
 
-const getPublicTagBySlugCached = unstable_cache(queryPublicTagBySlug, ['public-tag-by-slug'], {
-  revalidate: 300,
-  tags: [cacheTags.tags],
-})
-
-export async function getPublicTagBySlug(slug: string): Promise<PublicTaxonomy | null> {
-  return getPublicTagBySlugCached(slug)
-}
-
-export async function getPostsByAuthorUsername(input: {
+export function getPostsByAuthorUsername(input: {
+  locale: ContentLocale
   username: string
   limit?: number
   page?: number
 }): Promise<PaginatedPosts> {
-  return getPostsByAuthorUsernameCached(input)
+  return findPostPage({
+    limit: input.limit,
+    locale: input.locale,
+    page: input.page,
+    where: { 'author.username': { equals: input.username } },
+  })
 }
 
-const getPostsByAuthorUsernameCached = unstable_cache(
-  (input: { username: string; limit?: number; page?: number }) =>
-    findPostPage({
-      limit: input.limit,
-      page: input.page,
-      where: { 'author.username': { equals: input.username } },
-    }),
-  ['posts-by-author'],
-  { revalidate: 300, tags: [cacheTags.posts, cacheTags.users] },
-)
-
-async function querySeriesBySlug(slug: string): Promise<PublicSeries | null> {
+export async function getSeriesBySlug(input: {
+  locale: ContentLocale
+  slug: string
+}): Promise<PublicSeries | null> {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'series',
     depth: 1,
+    fallbackLocale: false,
     limit: 1,
+    locale: input.locale,
     overrideAccess: true,
     pagination: false,
     where: {
-      and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
+      and: [
+        { slug: { equals: input.slug } },
+        { isActive: { equals: true } },
+        { title: { exists: true } },
+      ],
     },
   })
   return projectSeries(result.docs[0])
 }
 
-const getSeriesBySlugCached = unstable_cache(querySeriesBySlug, ['series-by-slug'], {
-  revalidate: 300,
-  tags: [cacheTags.series],
-})
-
-export async function getSeriesBySlug(slug: string): Promise<PublicSeries | null> {
-  return getSeriesBySlugCached(slug)
-}
-
-export async function getPostsBySeriesSlug(input: {
+export function getPostsBySeriesSlug(input: {
+  locale: ContentLocale
   slug: string
   limit?: number
   page?: number
 }): Promise<PaginatedPosts> {
-  return getPostsBySeriesSlugCached(input)
+  return findPostPage({
+    ...input,
+    sort: ['seriesOrder', 'publishedAt'],
+    where: { 'series.slug': { equals: input.slug } },
+  })
 }
 
-const getPostsBySeriesSlugCached = unstable_cache(
-  (input: { slug: string; limit?: number; page?: number }) =>
-    findPostPage({
-      ...input,
-      sort: ['seriesOrder', 'publishedAt'],
-      where: { 'series.slug': { equals: input.slug } },
-    }),
-  ['posts-by-series'],
-  { revalidate: 300, tags: [cacheTags.posts, cacheTags.series] },
-)
-
-/*
- * Search deliberately bypasses shared caching. It is request-specific, length-limited,
- * parameterized by Payload, and restricted to the public publication boundary.
- */
 export async function searchPublishedPosts(input: {
+  locale: ContentLocale
   query: string
   limit?: number
   page?: number
 }): Promise<PaginatedPosts> {
-  const query = input.query
-    .replace(/[^\p{L}\p{N}\s._-]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  if (query.length < 2 || query.length > 100) {
-    return { hasNextPage: false, hasPrevPage: false, page: 1, posts: [], totalPages: 0 }
-  }
-  return findPostPage({
-    limit: input.limit,
-    page: input.page,
-    where: {
-      or: [{ title: { contains: query } }, { excerpt: { contains: query } }],
-    },
+  const payload = await getPayloadClient()
+  const limit = pageSize(input.limit)
+  const page = positiveInteger(input.page, 1)
+  const result = await searchLocalizedDocuments({
+    limit,
+    locale: input.locale,
+    page,
+    payload,
+    query: input.query,
   })
+  const posts = (
+    await Promise.all(
+      result.docs.map((document) =>
+        getPublishedPostBySlug({ locale: input.locale, slug: document.slug }),
+      ),
+    )
+  ).filter((post): post is PostDetail => post !== null)
+  return {
+    hasNextPage: page < result.totalPages,
+    hasPrevPage: page > 1,
+    page,
+    posts,
+    totalPages: result.totalPages,
+  }
 }
 
-async function queryPublishedPostsForSitemap(): Promise<PostSummary[]> {
+async function queryPublishedPostsForSitemap(locale: ContentLocale): Promise<PostSummary[]> {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'posts',
     depth: 2,
     draft: false,
+    fallbackLocale: false,
     limit: 1000,
+    locale,
     overrideAccess: true,
     pagination: false,
     select: postSummarySelect,
     sort: '-updatedAt',
-    where: {
-      and: [publicFeedWhere, { 'seo.noIndex': { not_equals: true } }],
-    },
+    where: { and: [publicFeedWhere, { 'seo.noIndex': { not_equals: true } }] },
   })
   return result.docs.map(projectPostSummary)
 }
 
-const getPublishedPostsForSitemapCached = unstable_cache(
-  queryPublishedPostsForSitemap,
-  ['posts-for-sitemap'],
-  { revalidate: 300, tags: [cacheTags.posts] },
-)
-
-export async function getPublishedPostsForSitemap(): Promise<PostSummary[]> {
-  return env.NODE_ENV === 'test'
-    ? queryPublishedPostsForSitemap()
-    : getPublishedPostsForSitemapCached()
+export function getPublishedPostsForSitemap(locale: ContentLocale): Promise<PostSummary[]> {
+  return queryPublishedPostsForSitemap(locale)
 }
 
-const getPublishedPostsForRssCached = unstable_cache(
-  async () => {
-    const result = await findPostPage({ limit: 50 })
-    return result.posts
-  },
-  ['posts-for-rss'],
-  { revalidate: 300, tags: [cacheTags.posts] },
-)
-
-export async function getPublishedPostsForRss(): Promise<PostSummary[]> {
-  return getPublishedPostsForRssCached()
+export async function getPublishedPostsForRss(locale: ContentLocale): Promise<PostSummary[]> {
+  return (await findPostPage({ limit: 50, locale })).posts
 }

@@ -1,3 +1,5 @@
 export * from './calculateReadingTime'
 export * from './normalizeSlug'
+export * from './normalizeSearchText'
 export * from './publicVisibility'
+export * from './translationReadiness'

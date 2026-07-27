@@ -1,4 +1,7 @@
 # Project instruction entrypoint
 
-Read [`docs/instructions/ChatGPT-Instruction.md`](docs/instructions/ChatGPT-Instruction.md)
-and the approved Phase 1 plan before changing this project.
+Before implementation, read:
+
+1. [`docs/instructions/ChatGPT-Instruction.md`](docs/instructions/ChatGPT-Instruction.md)
+2. [`docs/rules/implementation-rules.md`](docs/rules/implementation-rules.md)
+3. The applicable approved plan or ADR

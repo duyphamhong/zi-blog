@@ -1,14 +1,41 @@
 import type { Payload } from 'payload'
 
 import { env } from '@/config/env'
+import type { ContentLocale } from '@/modules/platform'
 
 import { lexicalDocument } from './content'
 
 const seedContext = { seed: true, skipRevalidation: true }
+type Localized<T> = Record<ContentLocale, T>
+
+async function findLocalizedDocumentId(
+  payload: Payload,
+  collection: 'categories' | 'posts' | 'series' | 'tags',
+  slugs: Localized<string>,
+  draft = false,
+): Promise<number | null> {
+  for (const locale of ['vi', 'en'] as const) {
+    const result = await payload.find({
+      collection,
+      depth: 0,
+      draft,
+      fallbackLocale: false,
+      limit: 1,
+      locale,
+      overrideAccess: true,
+      pagination: false,
+      where: { slug: { equals: slugs[locale] } },
+    })
+    const id = result.docs[0]?.id
+    if (typeof id === 'number') return id
+  }
+  return null
+}
 
 async function upsertUser(
   payload: Payload,
   input: {
+    bio?: Localized<string>
     displayName: string
     email: string
     password: string
@@ -23,154 +50,184 @@ async function upsertUser(
     pagination: false,
     where: { email: { equals: input.email } },
   })
-  const data = {
-    ...input,
+  const base = {
+    displayName: input.displayName,
+    email: input.email,
+    password: input.password,
+    role: input.role,
     status: 'active' as const,
+    username: input.username,
   }
-  return existing.docs[0]
-    ? payload.update({
+  const user = existing.docs[0]
+    ? await payload.update({
         collection: 'users',
         context: seedContext,
-        data,
+        data: { ...base, bio: input.bio?.vi },
         id: existing.docs[0].id,
+        locale: 'vi',
         overrideAccess: true,
       })
-    : payload.create({
+    : await payload.create({
         collection: 'users',
         context: seedContext,
-        data,
+        data: { ...base, bio: input.bio?.vi },
+        locale: 'vi',
         overrideAccess: true,
       })
+  if (input.bio) {
+    await payload.update({
+      collection: 'users',
+      context: seedContext,
+      data: { bio: input.bio.en },
+      id: user.id,
+      locale: 'en',
+      overrideAccess: true,
+    })
+  }
+  return user
 }
 
 async function upsertCategory(
   payload: Payload,
-  input: { description: string; displayOrder: number; name: string; slug: string },
+  input: Localized<{ description: string; name: string; slug: string }> & {
+    displayOrder: number
+  },
 ) {
-  const existing = await payload.find({
-    collection: 'categories',
-    limit: 1,
-    overrideAccess: true,
-    pagination: false,
-    where: { slug: { equals: input.slug } },
+  const existingId = await findLocalizedDocumentId(payload, 'categories', {
+    en: input.en.slug,
+    vi: input.vi.slug,
   })
-  const data = { ...input, isActive: true }
-  return existing.docs[0]
-    ? payload.update({
+  const shared = { displayOrder: input.displayOrder, isActive: true }
+  const category = existingId
+    ? await payload.update({
         collection: 'categories',
         context: seedContext,
-        data,
-        id: existing.docs[0].id,
+        data: { ...shared, ...input.vi },
+        id: existingId,
+        locale: 'vi',
         overrideAccess: true,
       })
-    : payload.create({
+    : await payload.create({
         collection: 'categories',
         context: seedContext,
-        data,
+        data: { ...shared, ...input.vi },
+        locale: 'vi',
         overrideAccess: true,
       })
+  await payload.update({
+    collection: 'categories',
+    context: seedContext,
+    data: input.en,
+    id: category.id,
+    locale: 'en',
+    overrideAccess: true,
+  })
+  return category
 }
 
 async function upsertTag(
   payload: Payload,
-  input: { description: string; isFeatured: boolean; name: string; slug: string },
-) {
-  const existing = await payload.find({
-    collection: 'tags',
-    limit: 1,
-    overrideAccess: true,
-    pagination: false,
-    where: { slug: { equals: input.slug } },
-  })
-  return existing.docs[0]
-    ? payload.update({
-        collection: 'tags',
-        context: seedContext,
-        data: input,
-        id: existing.docs[0].id,
-        overrideAccess: true,
-      })
-    : payload.create({
-        collection: 'tags',
-        context: seedContext,
-        data: input,
-        overrideAccess: true,
-      })
-}
-
-async function upsertPost(
-  payload: Payload,
-  input: {
-    author: number
-    category: number
-    excerpt: string
-    featured: boolean
-    paragraphs: string[]
-    series: number
-    seriesOrder: number
-    slug: string
-    status: 'draft' | 'published'
-    tags: number[]
-    title: string
+  input: Localized<{ description: string; name: string; slug: string }> & {
+    isFeatured: boolean
   },
 ) {
-  const existing = await payload.find({
-    collection: 'posts',
-    draft: true,
-    limit: 1,
-    overrideAccess: true,
-    pagination: false,
-    where: { slug: { equals: input.slug } },
+  const existingId = await findLocalizedDocumentId(payload, 'tags', {
+    en: input.en.slug,
+    vi: input.vi.slug,
   })
-  const data = {
+  const tag = existingId
+    ? await payload.update({
+        collection: 'tags',
+        context: seedContext,
+        data: { ...input.vi, isFeatured: input.isFeatured },
+        id: existingId,
+        locale: 'vi',
+        overrideAccess: true,
+      })
+    : await payload.create({
+        collection: 'tags',
+        context: seedContext,
+        data: { ...input.vi, isFeatured: input.isFeatured },
+        locale: 'vi',
+        overrideAccess: true,
+      })
+  await payload.update({
+    collection: 'tags',
+    context: seedContext,
+    data: input.en,
+    id: tag.id,
+    locale: 'en',
+    overrideAccess: true,
+  })
+  return tag
+}
+
+type LocalizedPostInput = Localized<{
+  excerpt: string
+  paragraphs: string[]
+  slug: string
+  title: string
+}> & {
+  author: number
+  category: number
+  featured: boolean
+  series: number
+  seriesOrder: number
+  status: 'draft' | 'published'
+  tags: number[]
+}
+
+async function upsertPost(payload: Payload, input: LocalizedPostInput) {
+  const existingId = await findLocalizedDocumentId(
+    payload,
+    'posts',
+    { en: input.en.slug, vi: input.vi.slug },
+    true,
+  )
+  const localizedData = (locale: ContentLocale) => ({
+    content: lexicalDocument(input[locale].paragraphs),
+    excerpt: input[locale].excerpt,
+    slug: input[locale].slug,
+    title: input[locale].title,
+  })
+  const shared = {
     _status: input.status,
     author: input.author,
     category: input.category,
-    content: lexicalDocument(input.paragraphs),
-    excerpt: input.excerpt,
     featured: input.featured,
     series: input.series,
     seriesOrder: input.seriesOrder,
-    slug: input.slug,
     tags: input.tags,
-    title: input.title,
     visibility: 'public' as const,
   }
-
-  if (existing.docs[0]) {
-    return input.status === 'draft'
-      ? payload.update({
-          collection: 'posts',
-          context: seedContext,
-          data,
-          draft: true,
-          id: existing.docs[0].id,
-          overrideAccess: true,
-        })
-      : payload.update({
-          collection: 'posts',
-          context: seedContext,
-          data,
-          draft: false,
-          id: existing.docs[0].id,
-          overrideAccess: true,
-        })
-  }
-  return input.status === 'draft'
-    ? payload.create({
+  const post = existingId
+    ? await payload.update({
         collection: 'posts',
         context: seedContext,
-        data,
-        draft: true,
+        data: { ...shared, ...localizedData('vi') },
+        draft: input.status === 'draft',
+        id: existingId,
+        locale: 'vi',
         overrideAccess: true,
       })
-    : payload.create({
+    : await payload.create({
         collection: 'posts',
         context: seedContext,
-        data,
-        draft: false,
+        data: { ...shared, ...localizedData('vi') },
+        draft: input.status === 'draft',
+        locale: 'vi',
         overrideAccess: true,
       })
+  await payload.update({
+    collection: 'posts',
+    context: seedContext,
+    data: localizedData('en'),
+    draft: input.status === 'draft',
+    id: post.id,
+    locale: 'en',
+    overrideAccess: true,
+  })
+  return post
 }
 
 export async function seed(payload: Payload): Promise<void> {
@@ -181,13 +238,16 @@ export async function seed(payload: Payload): Promise<void> {
     role: 'super_admin',
     username: 'administrator',
   })
-
   if (!env.ENABLE_SEED_SAMPLE_CONTENT) {
     payload.logger.info('Seeded administrator; sample content is disabled')
     return
   }
 
   const author = await upsertUser(payload, {
+    bio: {
+      en: 'Engineers sharing practical lessons from building content platforms.',
+      vi: 'Nhóm kỹ sư chia sẻ bài học thực tiễn khi xây dựng nền tảng nội dung.',
+    },
     displayName: 'Zi-Blog Engineering',
     email: 'author@example.com',
     password: env.SEED_ADMIN_PASSWORD,
@@ -197,199 +257,311 @@ export async function seed(payload: Payload): Promise<void> {
 
   const [architecture, tooling, operations] = await Promise.all([
     upsertCategory(payload, {
-      description: 'System design, trade-offs, and maintainable boundaries.',
       displayOrder: 1,
-      name: 'Architecture',
-      slug: 'architecture',
+      en: {
+        description: 'System design, trade-offs, and maintainable boundaries.',
+        name: 'Architecture',
+        slug: 'architecture',
+      },
+      vi: {
+        description: 'Thiết kế hệ thống, đánh đổi và ranh giới dễ bảo trì.',
+        name: 'Kiến trúc',
+        slug: 'kien-truc',
+      },
     }),
     upsertCategory(payload, {
-      description: 'Developer tools and productive engineering workflows.',
       displayOrder: 2,
-      name: 'Tooling',
-      slug: 'tooling',
+      en: {
+        description: 'Developer tools and productive engineering workflows.',
+        name: 'Tooling',
+        slug: 'tooling',
+      },
+      vi: {
+        description: 'Công cụ phát triển và quy trình kỹ thuật hiệu quả.',
+        name: 'Công cụ',
+        slug: 'cong-cu',
+      },
     }),
     upsertCategory(payload, {
-      description: 'Running and improving software in real environments.',
       displayOrder: 3,
-      name: 'Operations',
-      slug: 'operations',
+      en: {
+        description: 'Running and improving software in real environments.',
+        name: 'Operations',
+        slug: 'operations',
+      },
+      vi: {
+        description: 'Vận hành và cải tiến phần mềm trong môi trường thực tế.',
+        name: 'Vận hành',
+        slug: 'van-hanh',
+      },
     }),
   ])
 
   const tagInputs = [
     {
-      description: 'Type-safe application development.',
+      en: {
+        description: 'Type-safe application development.',
+        name: 'TypeScript',
+        slug: 'typescript',
+      },
       isFeatured: true,
-      name: 'TypeScript',
-      slug: 'typescript',
+      vi: {
+        description: 'Phát triển ứng dụng an toàn kiểu dữ liệu.',
+        name: 'TypeScript',
+        slug: 'typescript',
+      },
     },
     {
-      description: 'React applications with the App Router.',
+      en: {
+        description: 'React applications with the App Router.',
+        name: 'Next.js',
+        slug: 'nextjs',
+      },
       isFeatured: true,
-      name: 'Next.js',
-      slug: 'nextjs',
+      vi: { description: 'Ứng dụng React với App Router.', name: 'Next.js', slug: 'nextjs' },
     },
     {
-      description: 'Content infrastructure with Payload.',
+      en: {
+        description: 'Content infrastructure with Payload.',
+        name: 'Payload CMS',
+        slug: 'payload-cms',
+      },
       isFeatured: true,
-      name: 'Payload CMS',
-      slug: 'payload-cms',
+      vi: {
+        description: 'Hạ tầng nội dung với Payload.',
+        name: 'Payload CMS',
+        slug: 'payload-cms',
+      },
     },
     {
-      description: 'Relational data and PostgreSQL.',
+      en: {
+        description: 'Relational data and PostgreSQL.',
+        name: 'PostgreSQL',
+        slug: 'postgresql',
+      },
       isFeatured: false,
-      name: 'PostgreSQL',
-      slug: 'postgresql',
+      vi: { description: 'Dữ liệu quan hệ và PostgreSQL.', name: 'PostgreSQL', slug: 'postgresql' },
     },
     {
-      description: 'Containers and reproducible environments.',
+      en: {
+        description: 'Containers and reproducible environments.',
+        name: 'Docker',
+        slug: 'docker',
+      },
       isFeatured: false,
-      name: 'Docker',
-      slug: 'docker',
+      vi: {
+        description: 'Container và môi trường có thể tái tạo.',
+        name: 'Docker',
+        slug: 'docker',
+      },
     },
-  ]
+  ] satisfies Array<Parameters<typeof upsertTag>[1]>
   const tags = await Promise.all(tagInputs.map((input) => upsertTag(payload, input)))
 
-  const existingSeries = await payload.find({
-    collection: 'series',
-    limit: 1,
-    overrideAccess: true,
-    pagination: false,
-    where: { slug: { equals: 'building-a-content-platform' } },
+  const existingSeriesId = await findLocalizedDocumentId(payload, 'series', {
+    en: 'building-a-content-platform',
+    vi: 'xay-dung-nen-tang-noi-dung',
   })
-  const seriesData = {
-    author: author.id,
-    description: 'A practical path from CMS schema to a safe public read model.',
-    isActive: true,
-    slug: 'building-a-content-platform',
-    title: 'Building a Content Platform',
-  }
-  const series = existingSeries.docs[0]
+  const series = existingSeriesId
     ? await payload.update({
         collection: 'series',
         context: seedContext,
-        data: seriesData,
-        id: existingSeries.docs[0].id,
+        data: {
+          author: author.id,
+          description: 'Lộ trình thực tiễn từ lược đồ CMS đến mô hình đọc công khai an toàn.',
+          isActive: true,
+          slug: 'xay-dung-nen-tang-noi-dung',
+          title: 'Xây dựng nền tảng nội dung',
+        },
+        id: existingSeriesId,
+        locale: 'vi',
         overrideAccess: true,
       })
     : await payload.create({
         collection: 'series',
         context: seedContext,
-        data: seriesData,
+        data: {
+          author: author.id,
+          description: 'Lộ trình thực tiễn từ lược đồ CMS đến mô hình đọc công khai an toàn.',
+          isActive: true,
+          slug: 'xay-dung-nen-tang-noi-dung',
+          title: 'Xây dựng nền tảng nội dung',
+        },
+        locale: 'vi',
         overrideAccess: true,
       })
+  await payload.update({
+    collection: 'series',
+    context: seedContext,
+    data: {
+      description: 'A practical path from CMS schema to a safe public read model.',
+      slug: 'building-a-content-platform',
+      title: 'Building a Content Platform',
+    },
+    id: series.id,
+    locale: 'en',
+    overrideAccess: true,
+  })
 
   const posts = await Promise.all([
     upsertPost(payload, {
       author: author.id,
       category: architecture.id,
-      excerpt:
-        'Learn how a modular monolith keeps one deployment simple while preserving clear ownership boundaries.',
+      en: {
+        excerpt:
+          'Learn how a modular monolith keeps one deployment simple while preserving clear ownership boundaries.',
+        paragraphs: [
+          'A modular monolith is one deployable system with deliberately separated responsibilities.',
+          'The useful boundary is the contract: public content queries do not expose database documents directly.',
+        ],
+        slug: 'modular-monolith-first',
+        title: 'Start with a Modular Monolith',
+      },
       featured: true,
-      paragraphs: [
-        'A modular monolith is one deployable system with deliberately separated responsibilities.',
-        'The useful boundary is the contract: public content queries do not expose database documents directly.',
-      ],
       series: series.id,
       seriesOrder: 1,
-      slug: 'modular-monolith-first',
       status: 'published',
       tags: [tags[0].id, tags[1].id, tags[2].id],
-      title: 'Start with a Modular Monolith',
+      vi: {
+        excerpt:
+          'Tìm hiểu cách Modular Monolith giữ việc triển khai đơn giản mà vẫn duy trì ranh giới sở hữu rõ ràng.',
+        paragraphs: [
+          'Modular Monolith là một hệ thống triển khai duy nhất với các trách nhiệm được phân tách có chủ đích.',
+          'Ranh giới hữu ích nằm ở hợp đồng: truy vấn nội dung công khai không trả tài liệu cơ sở dữ liệu trực tiếp.',
+        ],
+        slug: 'bat-dau-voi-modular-monolith',
+        title: 'Bắt đầu với Modular Monolith',
+      },
     }),
     upsertPost(payload, {
       author: author.id,
       category: tooling.id,
-      excerpt:
-        'See why generated Payload types, strict TypeScript, and focused projections make public rendering safer.',
+      en: {
+        excerpt:
+          'See why generated Payload types, strict TypeScript, and focused projections make public rendering safer.',
+        paragraphs: [
+          'Generated types describe persistence, while public views use narrower projection types.',
+          'That distinction prevents authentication fields and draft state from reaching rendering components.',
+        ],
+        slug: 'safe-public-payload-queries',
+        title: 'Design Safe Public Payload Queries',
+      },
       featured: false,
-      paragraphs: [
-        'Generated types describe the persistence model, but public views should use narrower projection types.',
-        'That distinction prevents authentication fields and draft state from reaching rendering components.',
-      ],
       series: series.id,
       seriesOrder: 2,
-      slug: 'safe-public-payload-queries',
       status: 'published',
       tags: [tags[0].id, tags[2].id, tags[3].id],
-      title: 'Design Safe Public Payload Queries',
+      vi: {
+        excerpt:
+          'Khám phá cách kiểu Payload sinh tự động, TypeScript nghiêm ngặt và phép chiếu tập trung giúp hiển thị an toàn hơn.',
+        paragraphs: [
+          'Kiểu dữ liệu sinh tự động mô tả lớp lưu trữ, còn giao diện công khai dùng phép chiếu hẹp hơn.',
+          'Sự phân tách này ngăn trường xác thực và trạng thái nháp đi vào thành phần hiển thị.',
+        ],
+        slug: 'thiet-ke-truy-van-payload-cong-khai-an-toan',
+        title: 'Thiết kế truy vấn Payload công khai an toàn',
+      },
     }),
     upsertPost(payload, {
       author: author.id,
       category: operations.id,
-      excerpt:
-        'A draft article used to prove that unpublished content never crosses the public query boundary.',
+      en: {
+        excerpt:
+          'A draft article used to prove that unpublished content never crosses the public query boundary.',
+        paragraphs: [
+          'This post intentionally remains a draft.',
+          'Public queries must not expose it.',
+        ],
+        slug: 'draft-publication-boundary',
+        title: 'Testing the Draft Publication Boundary',
+      },
       featured: false,
-      paragraphs: [
-        'This post intentionally remains a draft.',
-        'Public lists, direct lookups, search, sitemap, and RSS must not expose it.',
-      ],
       series: series.id,
       seriesOrder: 3,
-      slug: 'draft-publication-boundary',
       status: 'draft',
       tags: [tags[2].id, tags[4].id],
-      title: 'Testing the Draft Publication Boundary',
+      vi: {
+        excerpt:
+          'Bài nháp dùng để chứng minh nội dung chưa xuất bản không bao giờ vượt qua ranh giới truy vấn công khai.',
+        paragraphs: [
+          'Bài viết này được giữ ở trạng thái nháp.',
+          'Truy vấn công khai không được phép hiển thị nó.',
+        ],
+        slug: 'kiem-thu-ranh-gioi-xuat-ban-ban-nhap',
+        title: 'Kiểm thử ranh giới xuất bản bản nháp',
+      },
     }),
   ])
 
-  await payload.updateGlobal({
-    context: seedContext,
-    data: {
-      defaultAuthor: author.id,
-      defaultSeoDescription: 'Practical engineering notes for people who build software.',
-      defaultSeoTitle: 'Zi-Blog Technology Notes',
-      enableDarkMode: true,
-      postsPerPage: 10,
-      siteDescription: 'Practical engineering notes for people who build software.',
-      siteName: 'Zi-Blog',
-      siteUrl: env.SERVER_URL,
-    },
-    overrideAccess: true,
-    slug: 'site-settings',
-  })
-
-  await payload.updateGlobal({
-    context: seedContext,
-    data: {
-      footerLinks: [
-        {
-          label: 'Posts',
-          reference: { relationTo: 'posts', value: posts[0].id },
-          type: 'internal',
-        },
-        { label: 'Search', type: 'external', url: `${env.SERVER_URL}/search` },
-      ],
-      footerText: 'Practical engineering notes for people who build software.',
-      headerLinks: [
-        {
-          label: 'Featured',
-          reference: { relationTo: 'posts', value: posts[0].id },
-          type: 'internal',
-        },
-        {
-          label: 'Architecture',
-          reference: { relationTo: 'categories', value: architecture.id },
-          type: 'internal',
-        },
-        {
-          label: 'Series',
-          reference: { relationTo: 'series', value: series.id },
-          type: 'internal',
-        },
-      ],
-    },
-    overrideAccess: true,
-    slug: 'navigation',
-  })
+  for (const locale of ['vi', 'en'] as const) {
+    await payload.updateGlobal({
+      context: seedContext,
+      data: {
+        defaultAuthor: author.id,
+        defaultSeoDescription:
+          locale === 'vi'
+            ? 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.'
+            : 'Practical engineering notes for people who build software.',
+        defaultSeoTitle:
+          locale === 'vi' ? 'Ghi chép công nghệ Zi-Blog' : 'Zi-Blog Technology Notes',
+        enableDarkMode: true,
+        postsPerPage: 10,
+        siteDescription:
+          locale === 'vi'
+            ? 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.'
+            : 'Practical engineering notes for people who build software.',
+        siteName: 'Zi-Blog',
+        siteUrl: env.SERVER_URL,
+      },
+      locale,
+      overrideAccess: true,
+      slug: 'site-settings',
+    })
+    await payload.updateGlobal({
+      context: seedContext,
+      data: {
+        footerLinks: [
+          {
+            label: locale === 'vi' ? 'Bài viết' : 'Posts',
+            reference: { relationTo: 'posts', value: posts[0].id },
+            type: 'internal',
+          },
+          {
+            label: locale === 'vi' ? 'Tìm kiếm' : 'Search',
+            type: 'external',
+            url: `${env.SERVER_URL}/${locale}/search`,
+          },
+        ],
+        footerText:
+          locale === 'vi'
+            ? 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.'
+            : 'Practical engineering notes for people who build software.',
+        headerLinks: [
+          {
+            label: locale === 'vi' ? 'Nổi bật' : 'Featured',
+            reference: { relationTo: 'posts', value: posts[0].id },
+            type: 'internal',
+          },
+          {
+            label: locale === 'vi' ? 'Kiến trúc' : 'Architecture',
+            reference: { relationTo: 'categories', value: architecture.id },
+            type: 'internal',
+          },
+          {
+            label: locale === 'vi' ? 'Loạt bài' : 'Series',
+            reference: { relationTo: 'series', value: series.id },
+            type: 'internal',
+          },
+        ],
+      },
+      locale,
+      overrideAccess: true,
+      slug: 'navigation',
+    })
+  }
 
   payload.logger.info({
-    msg: 'Phase 1 seed completed',
-    records: {
-      administrator: administrator.id,
-      categories: 3,
-      posts: 3,
-      tags: tags.length,
-    },
+    msg: 'Phase 2 bilingual seed completed',
+    records: { administrator: administrator.id, categories: 3, posts: 3, tags: tags.length },
   })
 }

@@ -7,10 +7,14 @@ export function CodeBlock({
   code,
   filename,
   language,
+  copyLabel = 'Copy code',
+  copiedLabel = 'Copied',
 }: {
   code: string
   filename?: null | string
   language: string
+  copyLabel?: string
+  copiedLabel?: string
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -29,7 +33,7 @@ export function CodeBlock({
           onClick={copy}
           type="button"
         >
-          {copied ? 'Copied' : 'Copy code'}
+          {copied ? copiedLabel : copyLabel}
         </button>
       </figcaption>
       <Highlight code={code.trimEnd()} language={language} theme={themes.nightOwl}>

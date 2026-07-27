@@ -28,6 +28,7 @@
     "@payloadcms/db-postgres": "3.86.0",
     "@payloadcms/next": "3.86.0",
     "@payloadcms/richtext-lexical": "3.86.0",
+    "@payloadcms/translations": "3.86.0",
     "@payloadcms/ui": "3.86.0",
     "@tailwindcss/postcss": "4.1.18",
     "@tailwindcss/typography": "0.5.16",
