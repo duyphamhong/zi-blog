@@ -44,6 +44,7 @@ export default async function FrontendLayout({ children }: { children: ReactNode
     <html
       data-dark-mode={settings.enableDarkMode ? 'true' : 'false'}
       lang={LOCALE_METADATA[locale].htmlLang}
+      suppressHydrationWarning
     >
       <body>
         <a
