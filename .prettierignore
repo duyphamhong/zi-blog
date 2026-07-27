@@ -1,0 +1,12 @@
+apps/web/src/payload-types.ts
+apps/web/src/app/(payload)/admin/importMap.js
+apps/web/src/payload/migrations/
+pnpm-lock.yaml
+.next/
+node_modules/
+playwright-report/
+test-results/
+**/next-env.d.ts
+docs/instructions/
+docs/plans/
+.tmp-*

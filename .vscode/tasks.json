@@ -1,0 +1,77 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dependencies: install",
+      "type": "shell",
+      "command": "corepack pnpm install",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Database: start",
+      "type": "shell",
+      "command": "docker compose up -d postgres",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Database: migrate",
+      "type": "shell",
+      "command": "corepack pnpm db:migrate",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Database: seed",
+      "type": "shell",
+      "command": "corepack pnpm seed",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Database: start and migrate",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Database: start", "Database: migrate"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Development: first-time setup",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Dependencies: install",
+        "Database: start",
+        "Database: migrate",
+        "Database: seed"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Database: stop",
+      "type": "shell",
+      "command": "docker compose stop postgres",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Quality: validate",
+      "type": "shell",
+      "command": "corepack pnpm validate",
+      "group": "test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

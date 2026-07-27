@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.9-alpine
+        env:
+          POSTGRES_DB: blog
+          POSTGRES_PASSWORD: blog
+          POSTGRES_USER: blog
+        options: >-
+          --health-cmd "pg_isready -U blog -d blog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URI: postgresql://blog:blog@127.0.0.1:5432/blog
+      ENABLE_SEED_SAMPLE_CONTENT: 'true'
+      NEXT_PUBLIC_SERVER_URL: http://127.0.0.1:3000
+      PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
+      SEED_ADMIN_EMAIL: admin@example.com
+      SEED_ADMIN_NAME: CI Administrator
+      SEED_ADMIN_PASSWORD: ci-only-seed-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm payload:types
+      - run: pnpm payload:importmap
+      - name: Verify generated artifacts are current
+        run: git diff --exit-code -- apps/web/src/payload-types.ts apps/web/src/app/\(payload\)/admin/importMap.js
+      - run: pnpm db:migrate
+      - run: pnpm seed
+      - run: pnpm test:unit
+      - run: pnpm test:integration
+      - run: pnpm build
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

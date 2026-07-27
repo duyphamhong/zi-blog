@@ -1,0 +1,62 @@
+name: zi-blog
+
+services:
+  postgres:
+    image: postgres:16.9-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+    healthcheck:
+      interval: 5s
+      retries: 12
+      start_period: 10s
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      timeout: 5s
+    ports:
+      - '5432:5432'
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      args:
+        DATABASE_URI: postgresql://${POSTGRES_USER:-blog}:${POSTGRES_PASSWORD:-blog}@postgres:5432/${POSTGRES_DB:-blog}
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}
+        PAYLOAD_SECRET: ${PAYLOAD_SECRET:-replace-with-a-long-random-secret-at-least-32-characters}
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URI: postgresql://${POSTGRES_USER:-blog}:${POSTGRES_PASSWORD:-blog}@postgres:5432/${POSTGRES_DB:-blog}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}
+      NODE_ENV: production
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-replace-with-a-long-random-secret-at-least-32-characters}
+      PORT: 3000
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-Administrator}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-change-me-locally}
+    healthcheck:
+      interval: 10s
+      retries: 6
+      start_period: 20s
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      timeout: 5s
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+    volumes:
+      - web_media:/app/apps/web/public/media
+
+volumes:
+  postgres_data:
+  web_media:
