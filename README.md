@@ -60,6 +60,16 @@ pnpm dev
 The seed is idempotent. It creates an administrator, an author, taxonomy data,
 one series, site/navigation globals, two published posts, and one draft post.
 
+### VS Code
+
+The repository includes launch profiles and tasks under `.vscode`. After
+creating `.env`, start Docker Desktop and run the
+**Development: first-time setup** task once. Then select
+**Zi-Blog: full stack** in **Run and Debug** and press `F5`.
+
+See `docs/development/local-setup.md` for the server-only and browser-only
+debugging profiles and breakpoint guidance.
+
 ## Full container workflow
 
 ```bash

@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Zi-Blog: full stack",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "corepack pnpm dev",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Database: start",
+      "serverReadyAction": {
+        "action": "debugWithChrome",
+        "pattern": "- Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}/apps/web"
+      },
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Zi-Blog: server only",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "corepack pnpm dev",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Database: start",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Zi-Blog: browser only",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/apps/web"
+    }
+  ]
+}
