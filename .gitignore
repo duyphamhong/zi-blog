@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+apps/web/public/media/*
+!apps/web/public/media/.gitkeep
+*.log
+.DS_Store
+.turbo/
+.tmp-*

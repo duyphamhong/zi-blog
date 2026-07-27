@@ -1,0 +1,13 @@
+.git
+.github
+.next
+.tmp-*
+apps/web/.next
+apps/web/node_modules
+apps/web/playwright-report
+apps/web/test-results
+node_modules
+playwright-report
+test-results
+.env
+*.log

@@ -1,0 +1,36 @@
+{
+  "name": "zi-blog",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22.17.0 <23"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --filter web dev",
+    "build": "corepack pnpm --filter web build",
+    "start": "corepack pnpm --filter web start",
+    "lint": "corepack pnpm --filter web lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "corepack pnpm --filter web typecheck",
+    "test": "corepack pnpm test:unit && corepack pnpm test:integration && corepack pnpm test:e2e",
+    "test:unit": "corepack pnpm --filter web test:unit",
+    "test:integration": "corepack pnpm --filter web test:integration",
+    "test:e2e": "corepack pnpm --filter web test:e2e",
+    "payload": "corepack pnpm --filter web payload",
+    "payload:types": "corepack pnpm --filter web payload:types",
+    "payload:importmap": "corepack pnpm --filter web payload:importmap",
+    "db:migrate": "corepack pnpm --filter web db:migrate",
+    "db:migrate:create": "corepack pnpm --filter web db:migrate:create",
+    "db:migrate:status": "corepack pnpm --filter web db:migrate:status",
+    "db:migrate:down": "corepack pnpm --filter web db:migrate:down",
+    "seed": "corepack pnpm --filter web seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "validate": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm payload:types && corepack pnpm payload:importmap && corepack pnpm test:unit && corepack pnpm test:integration && corepack pnpm build && corepack pnpm test:e2e"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}
