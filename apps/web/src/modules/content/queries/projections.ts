@@ -23,6 +23,7 @@ type PostSummarySource = Pick<
   | 'slug'
   | 'tags'
   | 'title'
+  | 'id'
 >
 
 function isPopulated<T extends { id: number }>(value: number | null | T | undefined): value is T {
@@ -30,7 +31,7 @@ function isPopulated<T extends { id: number }>(value: number | null | T | undefi
 }
 
 export function projectMedia(value: Media | number | null | undefined): PublicMedia | null {
-  if (!isPopulated(value) || !value.url) return null
+  if (!isPopulated(value) || !value.url || !value.alt) return null
   return {
     alt: value.alt,
     height: value.height,
@@ -87,6 +88,7 @@ export function projectSeries(value: Series | number | null | undefined): Public
 export function projectPostSummary(post: PostSummarySource): PostSummary {
   if (!post.publishedAt) throw new Error(`Published post "${post.slug}" has no publishedAt`)
   return {
+    id: post.id,
     author: projectAuthor(post.author),
     category: projectCategory(post.category),
     coverImage: projectMedia(post.coverImage),

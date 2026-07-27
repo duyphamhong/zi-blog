@@ -13,6 +13,10 @@ const superAdminFieldAccess: FieldAccess = ({ req }) => isSuperAdmin(req.user)
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  labels: {
+    plural: { en: 'Users', vi: 'Người dùng' },
+    singular: { en: 'User', vi: 'Người dùng' },
+  },
   access: {
     admin: ({ req }) => isActiveStaff(req.user),
     create: userCreateAccess,
@@ -49,6 +53,8 @@ export const Users: CollectionConfig = {
     {
       name: 'bio',
       type: 'textarea',
+      label: { en: 'Biography', vi: 'Tiểu sử' },
+      localized: true,
       maxLength: 800,
     },
     {
@@ -92,6 +98,8 @@ export const Users: CollectionConfig = {
     {
       name: 'expertise',
       type: 'array',
+      label: { en: 'Expertise', vi: 'Chuyên môn' },
+      localized: true,
       maxRows: 12,
       fields: [{ name: 'topic', type: 'text', required: true }],
     },

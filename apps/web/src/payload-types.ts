@@ -73,6 +73,7 @@ export interface Config {
     tags: Tag;
     series: Series;
     posts: Post;
+    'search-documents': SearchDocument;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +87,7 @@ export interface Config {
     tags: TagsSelect<false> | TagsSelect<true>;
     series: SeriesSelect<false> | SeriesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    'search-documents': SearchDocumentsSelect<false> | SearchDocumentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -94,7 +96,7 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: null;
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('vi' | 'en') | ('vi' | 'en')[];
   globals: {
     'site-settings': SiteSetting;
     navigation: Navigation;
@@ -103,7 +105,7 @@ export interface Config {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     navigation: NavigationSelect<false> | NavigationSelect<true>;
   };
-  locale: null;
+  locale: 'vi' | 'en';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -342,6 +344,24 @@ export interface Post {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search-documents".
+ */
+export interface SearchDocument {
+  id: number;
+  postLocaleKey: string;
+  post: number | Post;
+  locale: 'vi' | 'en';
+  title: string;
+  slug: string;
+  excerpt: string;
+  plainTextContent?: string | null;
+  normalizedSearchText: string;
+  publishedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -387,6 +407,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'posts';
         value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'search-documents';
+        value: number | SearchDocument;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -617,6 +641,23 @@ export interface PostsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search-documents_select".
+ */
+export interface SearchDocumentsSelect<T extends boolean = true> {
+  postLocaleKey?: T;
+  post?: T;
+  locale?: T;
+  title?: T;
+  slug?: T;
+  excerpt?: T;
+  plainTextContent?: T;
+  normalizedSearchText?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -4,7 +4,8 @@ Before implementation, read:
 
 1. `ChatGPT-Instruction.md`
 2. `docs/instructions/ChatGPT-Instruction.md`
-3. The applicable plan or ADR
+3. `docs/rules/implementation-rules.md`
+4. The applicable plan or ADR
 
 ## Ownership
 

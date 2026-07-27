@@ -1,4 +1,5 @@
 export * from './cache/paths'
 export * from './cache/tags'
+export * from './i18n'
 export * from './queries/publicAuthor'
 export * from './queries/publicConfig'

@@ -4,13 +4,19 @@ import type { PublicAuthor } from '@/modules/content'
 import { projectAuthor } from '@/modules/content/queries/projections'
 import { cacheTags } from '@/modules/platform/cache/tags'
 import { getPayloadClient } from '@/shared/payload/client'
+import type { ContentLocale } from '@/modules/platform/i18n'
 
-async function queryPublicAuthorProfile(username: string): Promise<PublicAuthor | null> {
+async function queryPublicAuthorProfile(
+  locale: ContentLocale,
+  username: string,
+): Promise<PublicAuthor | null> {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'users',
     depth: 1,
+    fallbackLocale: false,
     limit: 1,
+    locale,
     overrideAccess: true,
     pagination: false,
     where: {
@@ -26,6 +32,9 @@ const getPublicAuthorProfileCached = unstable_cache(
   { revalidate: 300, tags: [cacheTags.users] },
 )
 
-export async function getPublicAuthorProfile(username: string): Promise<PublicAuthor | null> {
-  return getPublicAuthorProfileCached(username)
+export async function getPublicAuthorProfile(input: {
+  locale: ContentLocale
+  username: string
+}): Promise<PublicAuthor | null> {
+  return getPublicAuthorProfileCached(input.locale, input.username)
 }

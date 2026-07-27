@@ -5,7 +5,7 @@ import { getPublicSiteSettings } from '@/modules/platform'
 export const dynamic = 'force-dynamic'
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-  const settings = await getPublicSiteSettings()
+  const settings = await getPublicSiteSettings('vi')
   return {
     host: settings.siteUrl,
     rules: {

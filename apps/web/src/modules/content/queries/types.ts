@@ -1,4 +1,5 @@
 import type { Post } from '@/payload-types'
+import type { ContentLocale } from '@/modules/platform'
 
 export type PublicMedia = {
   alt: string
@@ -33,6 +34,7 @@ export type PublicSeries = {
 }
 
 export type PostSummary = {
+  id: number
   author: PublicAuthor
   category: PublicTaxonomy
   coverImage?: PublicMedia | null
@@ -52,6 +54,8 @@ export type PostDetail = PostSummary & {
   seo?: Post['seo']
   visibility: 'public' | 'unlisted'
 }
+
+export type LocalizedUrls = Partial<Record<ContentLocale, string>>
 
 export type PaginatedPosts = {
   hasNextPage: boolean

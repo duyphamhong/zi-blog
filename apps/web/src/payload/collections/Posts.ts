@@ -23,9 +23,14 @@ import {
   revalidatePostAfterChange,
   revalidatePostAfterDelete,
 } from '@/payload/hooks/revalidatePost'
+import { removePostSearchBeforeDelete, synchronizePostSearchAfterChange } from '@/modules/search'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  labels: {
+    plural: { en: 'Posts', vi: 'Bài viết' },
+    singular: { en: 'Post', vi: 'Bài viết' },
+  },
   access: {
     create: postCreateAccess,
     delete: postDeleteAccess,
@@ -34,7 +39,8 @@ export const Posts: CollectionConfig = {
   },
   admin: {
     defaultColumns: ['title', '_status', 'author', 'category', 'publishedAt'],
-    preview: (data) => `${env.SERVER_URL}/posts/${String(data.slug ?? '')}`,
+    preview: (data, { locale }) =>
+      `${env.SERVER_URL}/${locale || 'vi'}/preview/posts/${String(data.id ?? '')}`,
     useAsTitle: 'title',
   },
   defaultPopulate: {
@@ -54,12 +60,28 @@ export const Posts: CollectionConfig = {
     seo: true,
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
+    {
+      name: 'title',
+      type: 'text',
+      label: { en: 'Title', vi: 'Tiêu đề' },
+      localized: true,
+      required: true,
+    },
     slugField('title'),
-    { name: 'excerpt', type: 'textarea', maxLength: 320, minLength: 40, required: true },
+    {
+      name: 'excerpt',
+      type: 'textarea',
+      label: { en: 'Excerpt', vi: 'Tóm tắt' },
+      localized: true,
+      maxLength: 320,
+      minLength: 40,
+      required: true,
+    },
     {
       name: 'content',
       type: 'richText',
+      label: { en: 'Content', vi: 'Nội dung' },
+      localized: true,
       editor: lexicalEditor({
         features: ({ rootFeatures }) => [
           ...rootFeatures,
@@ -110,8 +132,8 @@ export const Posts: CollectionConfig = {
       defaultValue: 'public',
       index: true,
       options: [
-        { label: 'Public', value: 'public' },
-        { label: 'Unlisted', value: 'unlisted' },
+        { label: { en: 'Public', vi: 'Công khai' }, value: 'public' },
+        { label: { en: 'Unlisted', vi: 'Không công khai' }, value: 'unlisted' },
       ],
       required: true,
     },
@@ -137,8 +159,9 @@ export const Posts: CollectionConfig = {
     seoFields,
   ],
   hooks: {
-    afterChange: [revalidatePostAfterChange],
+    afterChange: [synchronizePostSearchAfterChange, revalidatePostAfterChange],
     afterDelete: [revalidatePostAfterDelete],
+    beforeDelete: [removePostSearchBeforeDelete],
     beforeChange: [preparePost],
   },
   timestamps: true,

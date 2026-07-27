@@ -1,15 +1,19 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { en } from '@payloadcms/translations/languages/en'
+import { vi } from '@payloadcms/translations/languages/vi'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
 import { env } from './config/env'
+import { DEFAULT_CONTENT_LOCALE } from './modules/platform/i18n'
 import { Categories } from './payload/collections/Categories'
 import { Media } from './payload/collections/Media'
 import { Posts } from './payload/collections/Posts'
 import { Series } from './payload/collections/Series'
+import { SearchDocuments } from './payload/collections/SearchDocuments'
 import { Tags } from './payload/collections/Tags'
 import { Users } from './payload/collections/Users'
 import { Navigation } from './payload/globals/Navigation'
@@ -26,8 +30,20 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Categories, Tags, Series, Posts],
+  collections: [Users, Media, Categories, Tags, Series, Posts, SearchDocuments],
   globals: [SiteSettings, Navigation],
+  i18n: {
+    fallbackLanguage: 'en',
+    supportedLanguages: { en, vi },
+  },
+  localization: {
+    defaultLocale: DEFAULT_CONTENT_LOCALE,
+    fallback: false,
+    locales: [
+      { code: 'vi', label: { en: 'Vietnamese', vi: 'Tiếng Việt' } },
+      { code: 'en', label: { en: 'English', vi: 'Tiếng Anh' } },
+    ],
+  },
   cors: [env.SERVER_URL],
   csrf: [env.SERVER_URL],
   defaultDepth: 1,

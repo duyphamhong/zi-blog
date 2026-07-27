@@ -2,7 +2,11 @@ import config from '@payload-config'
 import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { getPublishedPostBySlug, getPublishedPostsForSitemap } from '@/modules/content'
+import {
+  getPublishedPostBySlug,
+  getPublishedPostsForSitemap,
+  searchPublishedPosts,
+} from '@/modules/content'
 import { seed } from '@/payload/seed'
 import { lexicalDocument } from '@/payload/seed/content'
 
@@ -13,7 +17,8 @@ const ids: {
   editor?: number
   author?: number
   posts: number[]
-} = { posts: [] }
+  tags: number[]
+} = { posts: [], tags: [] }
 
 beforeAll(async () => {
   payload = await getPayload({ config })
@@ -27,6 +32,9 @@ afterAll(async () => {
       id,
       overrideAccess: true,
     })
+  }
+  for (const id of ids.tags) {
+    await payload.delete({ collection: 'tags', id, overrideAccess: true })
   }
   if (ids.category) {
     await payload.delete({ collection: 'categories', id: ids.category, overrideAccess: true })
@@ -51,6 +59,76 @@ afterAll(async () => {
 })
 
 describe('publication boundary', () => {
+  it('stores localized values on one ID without fallback and scopes slug uniqueness by locale', async () => {
+    const tag = await payload.create({
+      collection: 'tags',
+      data: {
+        description: 'Mô tả tiếng Việt',
+        name: `Thẻ ${suffix}`,
+        slug: `localized-${suffix}`,
+      },
+      fallbackLocale: false,
+      locale: 'vi',
+      overrideAccess: true,
+    })
+    ids.tags.push(tag.id)
+    await payload.update({
+      collection: 'tags',
+      data: {
+        description: 'English description',
+        name: `Tag ${suffix}`,
+        slug: `localized-${suffix}`,
+      },
+      fallbackLocale: false,
+      id: tag.id,
+      locale: 'en',
+      overrideAccess: true,
+    })
+    const [vietnamese, english] = await Promise.all([
+      payload.findByID({
+        collection: 'tags',
+        fallbackLocale: false,
+        id: tag.id,
+        locale: 'vi',
+        overrideAccess: true,
+      }),
+      payload.findByID({
+        collection: 'tags',
+        fallbackLocale: false,
+        id: tag.id,
+        locale: 'en',
+        overrideAccess: true,
+      }),
+    ])
+    expect(vietnamese.id).toBe(english.id)
+    expect(vietnamese.name).toBe(`Thẻ ${suffix}`)
+    expect(english.name).toBe(`Tag ${suffix}`)
+    await expect(
+      payload.create({
+        collection: 'tags',
+        data: { name: 'Duplicate', slug: `localized-${suffix}` },
+        locale: 'vi',
+        overrideAccess: true,
+      }),
+    ).rejects.toThrow()
+
+    const onlyVietnamese = await payload.create({
+      collection: 'tags',
+      data: { name: `Chỉ tiếng Việt ${suffix}`, slug: `vi-only-${suffix}` },
+      locale: 'vi',
+      overrideAccess: true,
+    })
+    ids.tags.push(onlyVietnamese.id)
+    const missingEnglish = await payload.findByID({
+      collection: 'tags',
+      fallbackLocale: false,
+      id: onlyVietnamese.id,
+      locale: 'en',
+      overrideAccess: true,
+    })
+    expect(missingEnglish.name).toBeUndefined()
+  })
+
   it('denies author publication, permits editor publication, and exposes only published data', async () => {
     const author = await payload.create({
       collection: 'users',
@@ -131,25 +209,69 @@ describe('publication boundary', () => {
       }),
     ).rejects.toThrow()
 
+    await expect(
+      payload.update({
+        collection: 'posts',
+        context: { skipRevalidation: true },
+        data: { _status: 'published' },
+        draft: false,
+        id: post.id,
+        locale: 'vi',
+        overrideAccess: false,
+        user: editor,
+      }),
+    ).rejects.toMatchObject({
+      data: {
+        code: 'TRANSLATION_INCOMPLETE',
+      },
+    })
+
+    await payload.update({
+      collection: 'posts',
+      context: { skipRevalidation: true },
+      data: {
+        content: lexicalDocument(['English integration content.']),
+        excerpt:
+          'This English integration excerpt is long enough to satisfy the configured validation boundary.',
+        slug: `integration-draft-en-${suffix}`,
+        title: 'English Integration Draft',
+      },
+      draft: true,
+      id: post.id,
+      locale: 'en',
+      overrideAccess: false,
+      user: editor,
+    })
+
     await payload.update({
       collection: 'posts',
       context: { skipRevalidation: true },
       data: { _status: 'published' },
       draft: false,
       id: post.id,
+      locale: 'vi',
       overrideAccess: false,
       user: editor,
     })
 
-    const published = await getPublishedPostBySlug(post.slug)
+    const published = await getPublishedPostBySlug({ locale: 'vi', slug: post.slug })
     expect(published?.slug).toBe(post.slug)
+    const english = await payload.findByID({
+      collection: 'posts',
+      fallbackLocale: false,
+      id: post.id,
+      locale: 'en',
+      overrideAccess: true,
+    })
+    expect(english.id).toBe(post.id)
+    expect(english.title).toBe('English Integration Draft')
   })
 
   it('excludes draft and unlisted posts from sitemap data', async () => {
     if (!ids.author || !ids.category) throw new Error('Publication fixture was not created')
     const draft = await payload.create({
       collection: 'posts',
-      context: { skipRevalidation: true },
+      context: { seed: true, skipRevalidation: true },
       data: {
         _status: 'draft',
         author: ids.author,
@@ -166,7 +288,7 @@ describe('publication boundary', () => {
     ids.posts.push(draft.id)
     const unlisted = await payload.create({
       collection: 'posts',
-      context: { skipRevalidation: true },
+      context: { seed: true, skipRevalidation: true },
       data: {
         _status: 'published',
         author: ids.author,
@@ -183,16 +305,21 @@ describe('publication boundary', () => {
     })
     ids.posts.push(unlisted.id)
 
-    const sitemapPosts = await getPublishedPostsForSitemap()
+    const sitemapPosts = await getPublishedPostsForSitemap('vi')
     expect(sitemapPosts.some((post) => post.slug === unlisted.slug)).toBe(false)
     expect(sitemapPosts.some((post) => post.slug === draft.slug)).toBe(false)
   })
 
   it('keeps the seed idempotent', async () => {
     await seed(payload)
-    const first = await payload.count({
+    const first = await payload.find({
       collection: 'posts',
+      depth: 0,
+      draft: true,
+      limit: 10,
+      locale: 'en',
       overrideAccess: true,
+      pagination: false,
       where: {
         slug: {
           in: [
@@ -204,9 +331,14 @@ describe('publication boundary', () => {
       },
     })
     await seed(payload)
-    const second = await payload.count({
+    const second = await payload.find({
       collection: 'posts',
+      depth: 0,
+      draft: true,
+      limit: 10,
+      locale: 'en',
       overrideAccess: true,
+      pagination: false,
       where: {
         slug: {
           in: [
@@ -217,7 +349,17 @@ describe('publication boundary', () => {
         },
       },
     })
-    expect(first.totalDocs).toBe(3)
-    expect(second.totalDocs).toBe(first.totalDocs)
+    expect(first.docs).toHaveLength(3)
+    expect(second.docs).toHaveLength(first.docs.length)
+    const vietnameseSearch = await searchPublishedPosts({
+      locale: 'vi',
+      query: 'bat dau',
+    })
+    expect(vietnameseSearch.posts.map(({ title }) => title)).toContain(
+      'Bắt đầu với Modular Monolith',
+    )
+    expect(
+      vietnameseSearch.posts.some(({ title }) => title === 'Start with a Modular Monolith'),
+    ).toBe(false)
   })
 })

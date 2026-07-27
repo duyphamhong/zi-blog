@@ -9,6 +9,10 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  labels: {
+    plural: { en: 'Media', vi: 'Thư viện' },
+    singular: { en: 'Media item', vi: 'Tệp phương tiện' },
+  },
   access: {
     create: mediaMutationAccess,
     delete: mediaUpdateOrDeleteAccess,
@@ -22,15 +26,21 @@ export const Media: CollectionConfig = {
     {
       name: 'alt',
       type: 'text',
+      label: { en: 'Alternative text', vi: 'Văn bản thay thế' },
+      localized: true,
       required: true,
     },
     {
       name: 'caption',
       type: 'textarea',
+      label: { en: 'Caption', vi: 'Chú thích' },
+      localized: true,
     },
     {
       name: 'credit',
       type: 'text',
+      label: { en: 'Credit', vi: 'Ghi công' },
+      localized: true,
     },
     {
       name: 'copyright',

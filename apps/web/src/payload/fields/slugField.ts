@@ -1,9 +1,12 @@
 import type { Field } from 'payload'
 
 import { normalizeSlug } from '@/modules/content/validation'
+import { parseContentLocale } from '@/modules/platform'
 
 export function slugField(sourceField: string): Field {
   return {
+    label: { en: 'Slug', vi: 'Đường dẫn' },
+    localized: true,
     name: 'slug',
     type: 'text',
     admin: {
@@ -13,10 +16,12 @@ export function slugField(sourceField: string): Field {
     },
     hooks: {
       beforeValidate: [
-        ({ siblingData, value }) => {
-          if (typeof value === 'string' && value.trim()) return normalizeSlug(value)
+        ({ req, siblingData, value }) => {
+          const locale = parseContentLocale(req.locale)
+          if (typeof value === 'string' && value.trim())
+            return normalizeSlug(value, locale ?? undefined)
           const source = siblingData?.[sourceField]
-          return typeof source === 'string' ? normalizeSlug(source) : value
+          return typeof source === 'string' ? normalizeSlug(source, locale ?? undefined) : value
         },
       ],
     },

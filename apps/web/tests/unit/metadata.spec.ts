@@ -4,6 +4,7 @@ import type { PostDetail } from '@/modules/content'
 import { buildPostMetadata } from '@/modules/seo'
 
 const post = {
+  id: 1,
   author: {
     displayName: 'Test Author',
     expertise: [],
@@ -42,14 +43,24 @@ const settings = {
 
 describe('SEO metadata', () => {
   it('uses post and site fallbacks', () => {
-    const metadata = buildPostMetadata(post, settings)
+    const metadata = buildPostMetadata({
+      alternateUrls: { en: '/en/posts/metadata-fallbacks' },
+      locale: 'en',
+      post,
+      settings,
+    })
     expect(metadata.title).toBe('Metadata Fallbacks | Zi-Blog')
     expect(metadata.description).toBe(post.excerpt)
-    expect(metadata.alternates?.canonical).toBe('https://example.com/posts/metadata-fallbacks')
+    expect(metadata.alternates?.canonical).toBe('https://example.com/en/posts/metadata-fallbacks')
   })
 
   it('forces unlisted posts to noindex', () => {
-    const metadata = buildPostMetadata({ ...post, visibility: 'unlisted' }, settings)
+    const metadata = buildPostMetadata({
+      alternateUrls: { en: '/en/posts/metadata-fallbacks' },
+      locale: 'en',
+      post: { ...post, visibility: 'unlisted' },
+      settings,
+    })
     expect(metadata.robots).toEqual({ follow: false, index: false })
   })
 })
