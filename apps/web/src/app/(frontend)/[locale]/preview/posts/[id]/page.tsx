@@ -14,12 +14,13 @@ type RouteProps = { params: Promise<{ id: string; locale: string }> }
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  robots: {
-    follow: false,
-    index: false,
-  },
-  title: 'Content preview',
+export async function generateMetadata({ params }: RouteProps): Promise<Metadata> {
+  const locale = parseContentLocale((await params).locale) ?? 'en'
+  const dictionary = await getDictionary(locale)
+  return {
+    robots: { follow: false, index: false },
+    title: dictionary.preview.title,
+  }
 }
 
 export default async function PostPreviewPage({ params }: RouteProps) {
@@ -42,9 +43,7 @@ export default async function PostPreviewPage({ params }: RouteProps) {
         className="mx-auto mb-8 max-w-4xl rounded-xl border border-amber-400 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-950"
         role="status"
       >
-        {locale === 'vi'
-          ? 'Bản xem trước được bảo vệ — nội dung này chưa được xuất bản.'
-          : 'Protected preview — this content may not be published.'}
+        {dictionary.preview.protectedNotice}
       </div>
       <article className="mx-auto max-w-4xl">
         <TaxonomyLinks category={post.category} locale={locale} tags={post.tags} />
