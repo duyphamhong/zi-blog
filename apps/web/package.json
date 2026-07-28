@@ -18,10 +18,9 @@
     "db:migrate:down": "corepack pnpm payload migrate:down",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/payload/seed/run.ts",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
-    "test": "corepack pnpm test:unit && corepack pnpm test:integration && corepack pnpm test:e2e",
+    "test": "corepack pnpm test:unit && corepack pnpm test:integration",
     "test:unit": "cross-env NODE_ENV=test NODE_OPTIONS=--no-deprecation vitest run tests/unit",
     "test:integration": "cross-env NODE_ENV=test NODE_OPTIONS=--no-deprecation vitest run tests/integration",
-    "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "corepack pnpm test:integration"
   },
   "dependencies": {

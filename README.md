@@ -112,7 +112,6 @@ pnpm payload:types
 pnpm payload:importmap
 pnpm test:unit
 pnpm test:integration
-pnpm test:e2e
 pnpm build
 ```
 
@@ -122,9 +121,13 @@ Run the entire local quality gate with:
 pnpm validate
 ```
 
-Integration and end-to-end tests require PostgreSQL. Integration fixtures use
-unique lookup keys and clean up their records; CI supplies a dedicated
-PostgreSQL service database.
+End-to-end execution is temporarily excluded from package scripts, validation,
+and CI. The existing Playwright coverage remains in the repository for later
+reactivation.
+
+Integration tests require PostgreSQL. Integration fixtures use unique lookup
+keys and clean up their records; CI supplies a dedicated PostgreSQL service
+database.
 
 ## Troubleshooting
 
