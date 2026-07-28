@@ -81,7 +81,10 @@ async function collectPaths(
   return paths
 }
 
-function shouldSkip(context: unknown): boolean {
+function shouldSkip(req: PayloadRequest): boolean {
+  if (req.pathname?.startsWith('/admin/')) return true
+
+  const { context } = req
   return Boolean(
     context &&
       typeof context === 'object' &&
@@ -95,7 +98,7 @@ export const revalidatePostAfterChange: CollectionAfterChangeHook = async ({
   previousDoc,
   req,
 }) => {
-  if (shouldSkip(req.context)) return doc
+  if (shouldSkip(req)) return doc
   const requestLocale = parseContentLocale(req.locale)
   const paths = new Set<string>()
   for (const locale of CONTENT_LOCALES) {
@@ -135,7 +138,7 @@ export const revalidatePostAfterChange: CollectionAfterChangeHook = async ({
 }
 
 export const revalidatePostAfterDelete: CollectionAfterDeleteHook = async ({ doc, req }) => {
-  if (shouldSkip(req.context)) return doc
+  if (shouldSkip(req)) return doc
   for (const locale of CONTENT_LOCALES) {
     const paths = await collectPaths(record(doc) ?? {}, req, locale)
     for (const path of paths) revalidatePath(path)
