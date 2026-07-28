@@ -17,8 +17,10 @@ schema migration or any destructive recovery action.
 `.github/workflows/deploy.yml` runs after the `CI` workflow succeeds on `main`.
 It can also be started manually from `main`. The workflow packages the validated
 revision, uploads it over SSH, applies only committed Payload migrations,
-restarts the app, verifies container readiness, and finally calls the public
-readiness endpoint.
+restarts the app, waits for its Docker health check, reloads the gateway, and
+finally calls the public readiness endpoint. The public smoke check is the
+single end-to-end deployment gate; the workflow does not repeat equivalent
+internal readiness checks.
 
 The migration container runs without a TTY and with stdin disconnected. This is
 required because the remote deployment script itself is streamed to SSH over

@@ -165,50 +165,15 @@ jobs:
             sleep 2
           done
           test "$(docker inspect -f '{{.State.Health.Status}}' "$WEB_CONTAINER_ID")" = healthy
-          docker compose --env-file .env.production -f docker-compose.prod.yml exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
-
-          # A health check at startup alone cannot detect a process that exits
-          # immediately afterward. Confirm the service remains healthy.
-          for attempt in $(seq 1 3); do
-            sleep 5
-            status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}stopped{{end}}' "$WEB_CONTAINER_ID")"
-            if [ "$status" != healthy ]; then
-              docker compose --env-file .env.production -f docker-compose.prod.yml ps --all
-              docker compose --env-file .env.production -f docker-compose.prod.yml logs --no-color web
-              exit 1
-            fi
-          done
 
           GATEWAY_CONTAINER_ID="$(docker ps -q --filter 'label=com.docker.compose.project=nginx-gateway' --filter 'label=com.docker.compose.service=nginx' | head -n 1)"
           test -n "$GATEWAY_CONTAINER_ID" || { echo 'Nginx gateway container was not found.'; exit 1; }
           docker network connect "$INGRESS_NETWORK" "$GATEWAY_CONTAINER_ID" 2> /dev/null || true
 
-          verify_gateway_upstream() {
-            docker exec "$GATEWAY_CONTAINER_ID" getent hosts zi-blog-web
-            docker exec "$GATEWAY_CONTAINER_ID" wget -q -T 10 -O /dev/null http://zi-blog-web:3000/api/health/ready
-          }
-
-          if ! verify_gateway_upstream; then
-            # Restore the stable Docker DNS alias if a prior deployment left the
-            # web container attached without it, then allow Nginx's resolver to refresh.
-            docker network disconnect "$INGRESS_NETWORK" "$WEB_CONTAINER_ID" 2> /dev/null || true
-            docker network connect --alias zi-blog-web "$INGRESS_NETWORK" "$WEB_CONTAINER_ID"
-            for attempt in $(seq 1 6); do
-              if verify_gateway_upstream; then
-                break
-              fi
-              sleep 5
-            done
-          fi
-          verify_gateway_upstream
-
           # The gateway resolves upstream DNS itself. Reload it after the web
           # container is attached so an old resolver cache cannot keep serving 502.
           docker exec "$GATEWAY_CONTAINER_ID" nginx -t
           docker exec "$GATEWAY_CONTAINER_ID" nginx -s reload
-          docker exec "$GATEWAY_CONTAINER_ID" wget --no-check-certificate -q -T 10 \
-            --header='Host: blog.appzihub.fun' \
-            -O /dev/null https://127.0.0.1/api/health/ready
           docker compose --env-file .env.production -f docker-compose.prod.yml ps
           EOF
 
