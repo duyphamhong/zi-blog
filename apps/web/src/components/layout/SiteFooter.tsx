@@ -18,7 +18,7 @@ export function SiteFooter({
         <div>
           <p className="text-xl font-black text-brand">Zi-Blog</p>
           <p className="mt-3 max-w-lg text-sm leading-6 text-text-secondary">
-            {navigation.footerText || dictionary.footer.fallback}
+            {navigation.footerText || dictionary.footer.content}
           </p>
           <p className="mt-5 text-xs text-text-muted">
             © {new Date().getFullYear()} Zi-Blog. {dictionary.footer.rights}
