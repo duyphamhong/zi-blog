@@ -1,0 +1,173 @@
+name: Deploy to Hostinger VPS
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: zi-blog-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_SERVER_URL }}
+      PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      SEED_ADMIN_EMAIL: ${{ secrets.SEED_ADMIN_EMAIL }}
+      SEED_ADMIN_NAME: ${{ secrets.SEED_ADMIN_NAME }}
+      SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+      VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+      VPS_SSH_KEY_PASSPHRASE: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+      VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+      VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
+
+    steps:
+      - name: Checkout validated revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Validate deployment configuration
+        run: |
+          set -euo pipefail
+          for name in NEXT_PUBLIC_SERVER_URL PAYLOAD_SECRET POSTGRES_DB POSTGRES_PASSWORD POSTGRES_USER SEED_ADMIN_EMAIL SEED_ADMIN_NAME SEED_ADMIN_PASSWORD VPS_HOST VPS_SSH_PRIVATE_KEY VPS_SSH_USER; do
+            test -n "${!name}" || { echo "Missing required production secret: $name"; exit 1; }
+          done
+          test "${#PAYLOAD_SECRET}" -ge 32 || { echo 'PAYLOAD_SECRET must be at least 32 characters.'; exit 1; }
+          [[ "$NEXT_PUBLIC_SERVER_URL" =~ ^https:// ]] || { echo 'NEXT_PUBLIC_SERVER_URL must use HTTPS.'; exit 1; }
+
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          if [ -n "$VPS_SSH_KEY_PASSPHRASE" ]; then
+            ssh-keygen -p -q \
+              -P "$VPS_SSH_KEY_PASSPHRASE" \
+              -N '' \
+              -f ~/.ssh/id_ed25519
+          fi
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+
+      - name: Trust VPS host key
+        run: |
+          set -euo pipefail
+          if [ -n "$VPS_SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "${VPS_SSH_PORT:-22}" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Create release and production environment bundles
+        run: |
+          set -euo pipefail
+          RELEASE_ARCHIVE="$RUNNER_TEMP/zi-blog-${DEPLOY_SHA}.tgz"
+          ENV_FILE="$RUNNER_TEMP/zi-blog.env.production"
+          tar --exclude=.git --exclude=.github --exclude=.next --exclude=node_modules --exclude=apps/web/.next --exclude=apps/web/node_modules -czf "$RELEASE_ARCHIVE" .
+          python3 - "$ENV_FILE" <<'PY'
+          import os
+          import sys
+          from urllib.parse import quote
+
+          values = {
+              'DATABASE_URI': 'postgresql://{user}:{password}@postgres:5432/{database}'.format(
+                  user=os.environ['POSTGRES_USER'],
+                  password=quote(os.environ['POSTGRES_PASSWORD'], safe=''),
+                  database=os.environ['POSTGRES_DB'],
+              ),
+              'ENABLE_SEED_SAMPLE_CONTENT': 'false',
+              'LEGACY_CONTENT_LOCALE': 'en',
+              'NEXT_PUBLIC_SERVER_URL': os.environ['NEXT_PUBLIC_SERVER_URL'],
+              'NODE_ENV': 'production',
+              'PAYLOAD_SECRET': os.environ['PAYLOAD_SECRET'],
+              'POSTGRES_DB': os.environ['POSTGRES_DB'],
+              'POSTGRES_PASSWORD': os.environ['POSTGRES_PASSWORD'],
+              'POSTGRES_USER': os.environ['POSTGRES_USER'],
+              'SEED_ADMIN_EMAIL': os.environ['SEED_ADMIN_EMAIL'],
+              'SEED_ADMIN_NAME': os.environ['SEED_ADMIN_NAME'],
+              'SEED_ADMIN_PASSWORD': os.environ['SEED_ADMIN_PASSWORD'],
+          }
+
+          def quote(value):
+              return "'{}'".format(value.replace("'", "''"))
+
+          with open(sys.argv[1], 'w', encoding='utf-8') as output:
+              for key, value in values.items():
+                  output.write(f'{key}={quote(value)}\\n')
+          PY
+          echo "RELEASE_ARCHIVE=$RELEASE_ARCHIVE" >> "$GITHUB_ENV"
+          echo "PRODUCTION_ENV_B64=$(base64 -w 0 "$ENV_FILE")" >> "$GITHUB_ENV"
+
+      - name: Upload release bundle
+        run: |
+          set -euo pipefail
+          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/zi-blog}"
+          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "mkdir -p '$DEPLOY_PATH/releases'"
+          scp -P "${VPS_SSH_PORT:-22}" "$RELEASE_ARCHIVE" "$VPS_SSH_USER@$VPS_HOST:$DEPLOY_PATH/releases/$DEPLOY_SHA.tgz"
+
+      - name: Deploy and migrate on VPS
+        run: |
+          set -euo pipefail
+          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/zi-blog}"
+          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "export DEPLOY_PATH='$DEPLOY_PATH' DEPLOY_SHA='$DEPLOY_SHA' PRODUCTION_ENV_B64='$PRODUCTION_ENV_B64'; bash -s" <<'EOF'
+          set -euo pipefail
+
+          RELEASE_DIR="$DEPLOY_PATH/releases/$DEPLOY_SHA"
+          mkdir -p "$RELEASE_DIR"
+          tar -xzf "$DEPLOY_PATH/releases/$DEPLOY_SHA.tgz" -C "$RELEASE_DIR"
+          rm -f "$DEPLOY_PATH/releases/$DEPLOY_SHA.tgz"
+          printf '%s' "$PRODUCTION_ENV_B64" | base64 -d > "$RELEASE_DIR/.env.production"
+
+          cd "$RELEASE_DIR"
+          if ! docker network inspect public-ingress > /dev/null 2>&1; then
+            docker network create public-ingress
+          fi
+
+          docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres
+          docker compose --env-file .env.production -f docker-compose.prod.yml --profile migration run --rm --build migrate
+          docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --remove-orphans web
+
+          WEB_CONTAINER_ID="$(docker compose --env-file .env.production -f docker-compose.prod.yml ps -q web)"
+          for attempt in $(seq 1 30); do
+            status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}starting{{end}}' "$WEB_CONTAINER_ID")"
+            if [ "$status" = healthy ]; then
+              break
+            fi
+            if [ "$status" = unhealthy ]; then
+              docker compose --env-file .env.production -f docker-compose.prod.yml logs --no-color web
+              exit 1
+            fi
+            sleep 2
+          done
+          test "$(docker inspect -f '{{.State.Health.Status}}' "$WEB_CONTAINER_ID")" = healthy
+          docker compose --env-file .env.production -f docker-compose.prod.yml exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
+          docker compose --env-file .env.production -f docker-compose.prod.yml ps
+          EOF
+
+      - name: Verify public readiness
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 5 "$NEXT_PUBLIC_SERVER_URL/api/health/ready"
+
+      - name: Show remote logs on failure
+        if: failure()
+        run: |
+          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/zi-blog}"
+          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "cd '$DEPLOY_PATH/releases/$DEPLOY_SHA' && docker compose --env-file .env.production -f docker-compose.prod.yml logs --no-color web postgres || true"
