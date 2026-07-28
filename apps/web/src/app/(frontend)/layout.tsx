@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { headers } from 'next/headers'
+import Script from 'next/script'
 
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SiteHeader } from '@/components/layout/SiteHeader'
@@ -43,9 +44,15 @@ export default async function FrontendLayout({ children }: { children: ReactNode
   return (
     <html
       data-dark-mode={settings.enableDarkMode ? 'true' : 'false'}
+      data-scroll-behavior="smooth"
       lang={LOCALE_METADATA[locale].htmlLang}
       suppressHydrationWarning
     >
+      <head>
+        {settings.enableDarkMode ? (
+          <Script src="/theme-init.js" strategy="beforeInteractive" />
+        ) : null}
+      </head>
       <body>
         <a
           className="sr-only z-50 rounded bg-white p-3 text-slate-950 focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
@@ -53,7 +60,12 @@ export default async function FrontendLayout({ children }: { children: ReactNode
         >
           {dictionary.accessibility.skipToContent}
         </a>
-        <SiteHeader dictionary={dictionary} locale={locale} navigation={navigation} />
+        <SiteHeader
+          dictionary={dictionary}
+          enableDarkMode={Boolean(settings.enableDarkMode)}
+          locale={locale}
+          navigation={navigation}
+        />
         <main id="main-content">{children}</main>
         <SiteFooter dictionary={dictionary} navigation={navigation} />
       </body>

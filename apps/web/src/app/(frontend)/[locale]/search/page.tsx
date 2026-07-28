@@ -4,6 +4,8 @@ import { Pagination } from '@/components/content/Pagination'
 import { PostList } from '@/components/content/PostList'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Container } from '@/components/layout/Container'
+import { Button } from '@/components/ui/Button'
+import { SearchIcon } from '@/components/ui/Icons'
 import { searchPublishedPosts } from '@/modules/content'
 import { getDictionary, localePath, parseContentLocale } from '@/modules/platform'
 
@@ -23,33 +25,36 @@ export default async function SearchPage({
   const results = query.length >= 2 ? await searchPublishedPosts({ locale, page, query }) : null
 
   return (
-    <Container className="py-12">
-      <h1 className="text-4xl font-black">{dictionary.search.title}</h1>
+    <Container className="py-12 sm:py-16">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">
+        {dictionary.navigation.search}
+      </p>
+      <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
+        {dictionary.search.title}
+      </h1>
       <form
         action={localePath(locale, '/search')}
-        className="mt-8 flex max-w-2xl gap-3"
+        className="mt-8 flex max-w-3xl flex-col gap-3 sm:flex-row"
         role="search"
       >
         <label className="sr-only" htmlFor="search-query">
           {dictionary.search.label}
         </label>
-        <input
-          className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 focus:border-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-200"
-          defaultValue={query}
-          id="search-query"
-          maxLength={100}
-          minLength={2}
-          name="q"
-          placeholder={dictionary.search.placeholder}
-          required
-          type="search"
-        />
-        <button
-          className="rounded-xl bg-cyan-700 px-5 py-3 font-bold text-white hover:bg-cyan-800"
-          type="submit"
-        >
-          {dictionary.search.button}
-        </button>
+        <div className="relative flex-1">
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+          <input
+            className="min-h-12 w-full rounded-control border border-border-strong bg-surface pl-12 pr-4 text-text-primary placeholder:text-text-muted focus:border-brand focus:outline-none"
+            defaultValue={query}
+            id="search-query"
+            maxLength={100}
+            minLength={2}
+            name="q"
+            placeholder={dictionary.search.placeholder}
+            required
+            type="search"
+          />
+        </div>
+        <Button type="submit">{dictionary.search.button}</Button>
       </form>
       <section aria-live="polite" className="mt-10">
         {!query ? (

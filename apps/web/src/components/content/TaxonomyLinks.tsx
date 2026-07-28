@@ -13,16 +13,16 @@ export function TaxonomyLinks({
   tags: PublicTaxonomy[]
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wide">
+    <div className="flex flex-wrap items-center gap-2">
       <Link
-        className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200"
+        className="rounded-md bg-brand-soft px-2.5 py-1 text-[0.6875rem] font-black uppercase tracking-[0.08em] text-brand transition hover:bg-brand-soft-strong motion-reduce:transition-none"
         href={localePath(locale, `/categories/${category.slug}`)}
       >
         {category.name}
       </Link>
       {tags.map((tag) => (
         <Link
-          className="rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          className="rounded-md bg-canvas-subtle px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-text-muted transition hover:bg-brand-soft hover:text-brand motion-reduce:transition-none"
           href={localePath(locale, `/tags/${tag.slug}`)}
           key={tag.slug}
         >

@@ -1,17 +1,23 @@
 import Link from 'next/link'
 
+import { SearchDialog } from '@/modules/search/ui/SearchDialog'
 import type { PublicNavigation } from '@/modules/platform'
 import { localePath, type AppDictionary, type ContentLocale } from '@/modules/platform'
 
 import { Container } from './Container'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { MobileNavigation } from './MobileNavigation'
+import { NavigationLinks } from './NavigationLinks'
+import { ThemeToggle } from './ThemeToggle'
 
 export function SiteHeader({
   dictionary,
+  enableDarkMode,
   locale,
   navigation,
 }: {
   dictionary: AppDictionary
+  enableDarkMode: boolean
   locale: ContentLocale
   navigation: PublicNavigation
 }) {
@@ -24,43 +30,32 @@ export function SiteHeader({
             label: dictionary.navigation.posts,
             openInNewTab: false,
           },
-          {
-            href: localePath(locale, '/search'),
-            label: dictionary.navigation.search,
-            openInNewTab: false,
-          },
         ]
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-      <Container className="flex min-h-16 items-center justify-between gap-6">
+    <header className="sticky top-0 z-40 border-b border-border-subtle bg-surface/92 backdrop-blur-xl">
+      <Container className="flex min-h-18 items-center justify-between gap-4">
         <Link
-          className="text-lg font-black tracking-tight text-cyan-700 dark:text-cyan-300"
+          className="shrink-0 text-2xl font-black tracking-tight text-brand sm:text-[1.7rem]"
           href={localePath(locale)}
         >
           Zi-Blog
         </Link>
-        <div className="flex items-center gap-4">
-          <nav aria-label={dictionary.accessibility.primaryNavigation}>
-            <ul className="flex flex-wrap items-center gap-4 text-sm font-semibold">
-              {links.map((link) => (
-                <li key={`${link.href}-${link.label}`}>
-                  <Link
-                    className="rounded px-1 py-2 text-slate-700 hover:text-cyan-700 focus-visible:outline-2 focus-visible:outline-cyan-600 dark:text-slate-200 dark:hover:text-cyan-300"
-                    href={link.href}
-                    rel={link.openInNewTab ? 'noreferrer' : undefined}
-                    target={link.openInNewTab ? '_blank' : undefined}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <LanguageSwitcher
-            ariaLabel={dictionary.accessibility.languageSwitcher}
-            currentLocale={locale}
-          />
+        <nav aria-label={dictionary.accessibility.primaryNavigation} className="hidden lg:block">
+          <ul className="flex items-center gap-1">
+            <NavigationLinks links={links} />
+          </ul>
+        </nav>
+        <div className="flex items-center gap-2">
+          <SearchDialog action={localePath(locale, '/search')} dictionary={dictionary} />
+          {enableDarkMode ? <ThemeToggle ariaLabel={dictionary.accessibility.themeToggle} /> : null}
+          <div className="hidden lg:block">
+            <LanguageSwitcher
+              ariaLabel={dictionary.accessibility.languageSwitcher}
+              currentLocale={locale}
+            />
+          </div>
+          <MobileNavigation dictionary={dictionary} links={links} locale={locale} />
         </div>
       </Container>
     </header>

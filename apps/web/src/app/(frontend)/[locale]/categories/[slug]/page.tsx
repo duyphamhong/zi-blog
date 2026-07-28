@@ -26,13 +26,13 @@ export default async function CategoryPage({
   if (!category) notFound()
 
   return (
-    <Container className="py-12">
-      <p className="text-sm font-black uppercase tracking-[0.2em] text-cyan-700">
+    <Container className="py-12 sm:py-16">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">
         {dictionary.common.category}
       </p>
-      <h1 className="mt-3 text-4xl font-black">{category.name}</h1>
+      <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">{category.name}</h1>
       {category.description ? (
-        <p className="mt-4 max-w-2xl text-slate-600">{category.description}</p>
+        <p className="mt-4 max-w-2xl text-text-secondary">{category.description}</p>
       ) : null}
       <div className="mt-10">
         {posts.posts.length ? (

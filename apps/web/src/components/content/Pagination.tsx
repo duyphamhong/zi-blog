@@ -31,7 +31,7 @@ export function Pagination({
     >
       {hasPrevPage ? (
         <Link
-          className="rounded-lg border px-4 py-2 font-semibold hover:bg-slate-100"
+          className="rounded-control border border-border-subtle bg-surface px-4 py-2 font-semibold transition hover:border-brand hover:bg-brand-soft hover:text-brand motion-reduce:transition-none"
           href={href(page - 1)}
         >
           {dictionary.pagination.previous}
@@ -39,12 +39,12 @@ export function Pagination({
       ) : (
         <span />
       )}
-      <span className="text-sm text-slate-600 dark:text-slate-300">
+      <span className="text-sm text-text-secondary">
         {dictionary.common.page} {page} {dictionary.pagination.of} {totalPages}
       </span>
       {hasNextPage ? (
         <Link
-          className="rounded-lg border px-4 py-2 font-semibold hover:bg-slate-100"
+          className="rounded-control border border-border-subtle bg-surface px-4 py-2 font-semibold transition hover:border-brand hover:bg-brand-soft hover:text-brand motion-reduce:transition-none"
           href={href(page + 1)}
         >
           {dictionary.pagination.next}

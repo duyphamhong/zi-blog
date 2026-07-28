@@ -28,7 +28,9 @@ export type PublicTaxonomy = {
 }
 
 export type PublicSeries = {
+  coverImage?: PublicMedia | null
   description?: string | null
+  id: number
   slug: string
   title: string
 }
@@ -63,4 +65,20 @@ export type PaginatedPosts = {
   page: number
   posts: PostSummary[]
   totalPages: number
+}
+
+export type HomepageSeries = PublicSeries & {
+  publishedPostCount: number
+}
+
+export type HomepageContent = {
+  featuredPost: PostSummary | null
+  featuredSeries: HomepageSeries[]
+  featuredTopics: PublicTaxonomy[]
+  hero: {
+    description: string
+    siteName: string
+  }
+  latestPosts: PostSummary[]
+  popularPosts: PostSummary[]
 }

@@ -1,10 +1,14 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { FeaturedPostCard } from '@/components/content/FeaturedPostCard'
+import { HomeHero } from '@/components/content/HomeHero'
 import { PostList } from '@/components/content/PostList'
+import { SeriesCard } from '@/components/content/SeriesCard'
+import { TopicNavigation } from '@/components/content/TopicNavigation'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Container } from '@/components/layout/Container'
+import { BookIcon, LightningIcon } from '@/components/ui/Icons'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import { getDictionary, localePath, parseContentLocale } from '@/modules/platform'
 import { getHomePageContent } from '@/modules/content'
 
@@ -16,70 +20,66 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     getHomePageContent(locale),
     getDictionary(locale),
   ])
+  const firstSeries = content.featuredSeries[0]
 
   return (
-    <Container className="py-12 sm:py-16">
-      <section className="max-w-3xl">
-        <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
-          {dictionary.home.eyebrow}
-        </p>
-        <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-6xl">
-          {dictionary.home.heading}
-        </h1>
-        <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">
-          {dictionary.home.intro}
-        </p>
-      </section>
+    <Container>
+      <HomeHero
+        description={content.hero.description}
+        dictionary={dictionary}
+        locale={locale}
+        seriesHref={firstSeries ? localePath(locale, `/series/${firstSeries.slug}`) : undefined}
+      />
 
-      {content.featured[0] ? (
-        <section aria-labelledby="featured-heading" className="mt-14">
+      {content.featuredPost ? (
+        <section aria-labelledby="featured-heading" className="mt-2">
           <h2 className="sr-only" id="featured-heading">
             {dictionary.home.featuredPosts}
           </h2>
-          <FeaturedPostCard dictionary={dictionary} locale={locale} post={content.featured[0]} />
+          <FeaturedPostCard dictionary={dictionary} locale={locale} post={content.featuredPost} />
         </section>
       ) : null}
 
-      {content.categories.length > 0 ? (
-        <nav aria-label={dictionary.home.browseCategories} className="mt-10">
-          <ul className="flex flex-wrap gap-3">
-            {content.categories.map((category) => (
-              <li key={category.slug}>
-                <Link
-                  className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-bold hover:border-cyan-600 hover:text-cyan-700 dark:border-slate-700 dark:hover:text-cyan-300"
-                  href={localePath(locale, `/categories/${category.slug}`)}
-                >
-                  {category.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ) : null}
+      <div className="mt-8">
+        <TopicNavigation dictionary={dictionary} locale={locale} topics={content.featuredTopics} />
+      </div>
 
-      <section aria-labelledby="latest-heading" className="mt-16">
-        <div className="mb-7 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
-              {dictionary.home.freshIdeas}
-            </p>
-            <h2 className="mt-2 text-3xl font-black" id="latest-heading">
-              {dictionary.home.latestPosts}
-            </h2>
-          </div>
-          <Link
-            className="font-bold text-cyan-700 hover:underline dark:text-cyan-300"
-            href={localePath(locale, '/posts')}
-          >
-            {dictionary.home.viewAll}
-          </Link>
-        </div>
-        {content.latest.posts.length > 0 ? (
-          <PostList dictionary={dictionary} locale={locale} posts={content.latest.posts} />
+      <section aria-labelledby="latest-heading" className="mt-14">
+        <SectionHeading
+          action={dictionary.home.viewAll}
+          eyebrow={dictionary.home.freshIdeas}
+          href={localePath(locale, '/posts')}
+          icon={<LightningIcon className="text-brand" />}
+          id="latest-heading"
+          title={dictionary.home.latestPosts}
+        />
+        {content.latestPosts.length > 0 ? (
+          <PostList
+            dictionary={dictionary}
+            headingLevel={3}
+            locale={locale}
+            posts={content.latestPosts}
+          />
         ) : (
           <EmptyState description={dictionary.home.noPosts} />
         )}
       </section>
+
+      {content.featuredSeries.length > 0 ? (
+        <section aria-labelledby="series-heading" className="mt-16">
+          <SectionHeading
+            eyebrow={dictionary.home.seriesDescription}
+            icon={<BookIcon className="text-brand" />}
+            id="series-heading"
+            title={dictionary.home.series}
+          />
+          <div className="grid gap-5 lg:grid-cols-3">
+            {content.featuredSeries.map((series) => (
+              <SeriesCard dictionary={dictionary} key={series.id} locale={locale} series={series} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </Container>
   )
 }
