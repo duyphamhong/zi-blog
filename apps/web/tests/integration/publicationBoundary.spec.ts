@@ -13,6 +13,8 @@ import { lexicalDocument } from '@/payload/seed/content'
 
 let payload: Payload
 const suffix = `${Date.now()}-${Math.round(Math.random() * 10000)}`
+const POSTGRES_BTREE_INDEX_ENTRY_LIMIT = 2704
+const LONG_SEARCH_CONTENT = 'Searchable architecture boundary. '.repeat(200)
 const ids: {
   category?: number
   editor?: number
@@ -254,6 +256,36 @@ describe('publication boundary', () => {
       overrideAccess: false,
       user: editor,
     })
+
+    await payload.update({
+      collection: 'posts',
+      context: { skipRevalidation: true },
+      data: {
+        content: lexicalDocument([LONG_SEARCH_CONTENT]),
+      },
+      draft: false,
+      id: post.id,
+      locale: 'vi',
+      overrideAccess: false,
+      user: editor,
+    })
+
+    const longSearchProjection = await payload.find({
+      collection: 'search-documents',
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      pagination: false,
+      where: {
+        postLocaleKey: {
+          equals: `${post.id}:vi`,
+        },
+      },
+    })
+    expect(longSearchProjection.docs).toHaveLength(1)
+    expect(longSearchProjection.docs[0]?.normalizedSearchText.length).toBeGreaterThan(
+      POSTGRES_BTREE_INDEX_ENTRY_LIMIT,
+    )
 
     const published = await getPublishedPostBySlug({ locale: 'vi', slug: post.slug })
     expect(published?.slug).toBe(post.slug)

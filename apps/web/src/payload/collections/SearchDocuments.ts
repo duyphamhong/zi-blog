@@ -31,7 +31,7 @@ export const SearchDocuments: CollectionConfig = {
     { name: 'slug', type: 'text', index: true, required: true },
     { name: 'excerpt', type: 'textarea', required: true },
     { name: 'plainTextContent', type: 'textarea' },
-    { name: 'normalizedSearchText', type: 'textarea', index: true, required: true },
+    { name: 'normalizedSearchText', type: 'textarea', required: true },
     { name: 'publishedAt', type: 'date', index: true, required: true },
   ],
   timestamps: true,
