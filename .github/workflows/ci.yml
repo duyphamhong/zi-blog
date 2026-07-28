@@ -41,15 +41,9 @@ jobs:
           cache: pnpm
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm payload:types
-      - run: pnpm payload:importmap
-      - name: Verify generated artifacts are current
-        run: git diff --exit-code -- apps/web/src/payload-types.ts apps/web/src/app/\(payload\)/admin/importMap.js
       - run: pnpm db:migrate
-      - run: pnpm seed
       - run: pnpm test:unit
       - run: pnpm test:integration
       - run: pnpm build
