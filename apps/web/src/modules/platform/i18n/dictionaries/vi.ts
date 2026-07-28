@@ -2,11 +2,15 @@ import type { AppDictionary } from '../getDictionary'
 
 export const viDictionary = {
   accessibility: {
+    close: 'Đóng',
     currentLanguage: 'Ngôn ngữ hiện tại: Tiếng Việt',
     languageSwitcher: 'Đổi ngôn ngữ',
     loading: 'Đang tải nội dung',
+    mobileNavigation: 'Trình đơn',
+    openMenu: 'Mở trình đơn',
     primaryNavigation: 'Điều hướng chính',
     skipToContent: 'Đi đến nội dung',
+    themeToggle: 'Đổi giao diện màu',
   },
   common: {
     by: 'Bởi',
@@ -28,6 +32,7 @@ export const viDictionary = {
   footer: {
     fallback: 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.',
     navigation: 'Điều hướng chân trang',
+    rights: 'Đã đăng ký bản quyền.',
   },
   home: {
     browseCategories: 'Duyệt chuyên mục',
@@ -38,6 +43,13 @@ export const viDictionary = {
     intro: 'Kiến trúc, công cụ và bài học từ quá trình phát triển phần mềm.',
     latestPosts: 'Bài viết mới nhất',
     noPosts: 'Hãy xuất bản một bài trong Payload Admin. Bản nháp luôn được giữ riêng tư.',
+    postCount: 'bài đã xuất bản',
+    primaryCta: 'Khám phá bài viết',
+    secondaryCta: 'Xem Series',
+    series: 'Series chuyên sâu',
+    seriesDescription: 'Lộ trình có cấu trúc về kiến trúc, công cụ và vận hành.',
+    topics: 'Khám phá chủ đề',
+    viewSeries: 'Xem series',
     viewAll: 'Xem tất cả',
   },
   navigation: {
@@ -84,6 +96,7 @@ export const viDictionary = {
     noResultsDescription: 'Không có bài viết phù hợp với',
     placeholder: 'Tìm theo tiêu đề hoặc tóm tắt',
     resultsFor: 'Kết quả cho',
+    shortcutHint: 'Nhấn Ctrl K ở bất kỳ trang nào để mở tìm kiếm.',
     title: 'Tìm kiếm',
   },
 } as const satisfies AppDictionary

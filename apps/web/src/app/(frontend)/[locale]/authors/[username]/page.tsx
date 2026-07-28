@@ -31,7 +31,7 @@ export default async function AuthorPage({
   ])
   if (!author) notFound()
   return (
-    <Container className="py-12">
+    <Container className="py-12 sm:py-16">
       <h1 className="sr-only">
         {dictionary.post.authorHeading} {author.displayName}
       </h1>

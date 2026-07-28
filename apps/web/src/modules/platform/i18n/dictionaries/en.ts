@@ -1,10 +1,14 @@
 export const enDictionary = {
   accessibility: {
+    close: 'Close',
     currentLanguage: 'Current language: English',
     languageSwitcher: 'Change language',
     loading: 'Loading content',
+    mobileNavigation: 'Menu',
+    openMenu: 'Open menu',
     primaryNavigation: 'Primary navigation',
     skipToContent: 'Skip to content',
+    themeToggle: 'Change color theme',
   },
   common: {
     by: 'By',
@@ -26,6 +30,7 @@ export const enDictionary = {
   footer: {
     fallback: 'Practical engineering notes for people who build software.',
     navigation: 'Footer navigation',
+    rights: 'All rights reserved.',
   },
   home: {
     browseCategories: 'Browse categories',
@@ -36,6 +41,13 @@ export const enDictionary = {
     intro: 'Architecture, tooling, and lessons learned from shipping software.',
     latestPosts: 'Latest posts',
     noPosts: 'Publish a post in Payload Admin and it will appear here. Drafts stay private.',
+    postCount: 'published posts',
+    primaryCta: 'Explore articles',
+    secondaryCta: 'Browse series',
+    series: 'In-depth series',
+    seriesDescription: 'Structured paths through architecture, tooling, and delivery.',
+    topics: 'Explore topics',
+    viewSeries: 'View series',
     viewAll: 'View all',
   },
   navigation: {
@@ -82,6 +94,7 @@ export const enDictionary = {
     noResultsDescription: 'No published posts matched',
     placeholder: 'Search title or excerpt',
     resultsFor: 'Results for',
+    shortcutHint: 'Press Ctrl K from any page to open search.',
     title: 'Search',
   },
 } as const

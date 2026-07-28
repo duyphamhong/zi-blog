@@ -57,7 +57,7 @@ export function LanguageSwitcher({
   return (
     <button
       aria-label={`${ariaLabel}: ${LOCALE_METADATA[targetLocale].label}`}
-      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:border-cyan-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
+      className="min-h-11 rounded-control border border-border-subtle bg-surface px-3 py-2 text-sm font-bold text-text-secondary transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
       disabled={!resolved || !targetPath}
       lang={LOCALE_METADATA[targetLocale].htmlLang}
       onClick={switchLanguage}

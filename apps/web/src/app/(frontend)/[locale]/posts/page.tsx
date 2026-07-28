@@ -24,9 +24,14 @@ export default async function PostsPage({
   ])
 
   return (
-    <Container className="py-12">
-      <h1 className="text-4xl font-black">{dictionary.post.allPosts}</h1>
-      <p className="mt-3 text-slate-600 dark:text-slate-300">{dictionary.post.allDescription}</p>
+    <Container className="py-12 sm:py-16">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">
+        {dictionary.home.eyebrow}
+      </p>
+      <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
+        {dictionary.post.allPosts}
+      </h1>
+      <p className="mt-4 max-w-2xl text-text-secondary">{dictionary.post.allDescription}</p>
       <div className="mt-10">
         {result.posts.length ? (
           <PostList dictionary={dictionary} locale={locale} posts={result.posts} />

@@ -3,6 +3,7 @@ import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
+  getHomePageContent,
   getPublishedPostBySlug,
   getPublishedPostsForSitemap,
   searchPublishedPosts,
@@ -361,5 +362,21 @@ describe('publication boundary', () => {
     expect(
       vietnameseSearch.posts.some(({ title }) => title === 'Start with a Modular Monolith'),
     ).toBe(false)
+  })
+
+  it('composes a bounded homepage projection from public localized content', async () => {
+    await seed(payload)
+    const homepage = await getHomePageContent('vi')
+
+    expect(homepage.featuredPost?.slug).toBe('bat-dau-voi-modular-monolith')
+    expect(homepage.latestPosts.length).toBeLessThanOrEqual(6)
+    expect(homepage.featuredTopics.length).toBeLessThanOrEqual(6)
+    expect(homepage.featuredSeries.length).toBeLessThanOrEqual(3)
+    expect(homepage.latestPosts.some(({ slug }) => slug.includes('ban-nhap'))).toBe(false)
+    expect(homepage.featuredSeries[0]).toMatchObject({
+      slug: 'xay-dung-nen-tang-noi-dung',
+    })
+    expect(homepage.featuredSeries[0]?.publishedPostCount).toBeGreaterThanOrEqual(2)
+    expect(homepage.popularPosts).toEqual([])
   })
 })

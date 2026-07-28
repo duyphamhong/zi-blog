@@ -3,35 +3,138 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme inline {
+  --color-canvas: var(--zi-canvas);
+  --color-canvas-subtle: var(--zi-canvas-subtle);
+  --color-surface: var(--zi-surface);
+  --color-surface-elevated: var(--zi-surface-elevated);
+  --color-text-primary: var(--zi-text-primary);
+  --color-text-secondary: var(--zi-text-secondary);
+  --color-text-muted: var(--zi-text-muted);
+  --color-text-inverse: var(--zi-text-inverse);
+  --color-border-subtle: var(--zi-border-subtle);
+  --color-border-strong: var(--zi-border-strong);
+  --color-brand: var(--zi-brand);
+  --color-brand-hover: var(--zi-brand-hover);
+  --color-brand-soft: var(--zi-brand-soft);
+  --color-brand-soft-strong: var(--zi-brand-soft-strong);
+  --color-accent: var(--zi-accent);
+  --font-sans: var(--zi-font-sans);
+  --font-mono: var(--zi-font-mono);
+  --radius-card: var(--zi-radius-card);
+  --radius-control: var(--zi-radius-control);
+  --shadow-card: var(--zi-shadow-card);
+  --shadow-card-hover: var(--zi-shadow-card-hover);
+}
+
 :root {
-  color-scheme: light dark;
+  --zi-canvas: #f7f9fc;
+  --zi-canvas-subtle: #eef5ff;
+  --zi-surface: #ffffff;
+  --zi-surface-elevated: #ffffff;
+  --zi-text-primary: #071631;
+  --zi-text-secondary: #40516f;
+  --zi-text-muted: #66758f;
+  --zi-text-inverse: #ffffff;
+  --zi-border-subtle: #dce5f1;
+  --zi-border-strong: #bdcadc;
+  --zi-brand: #0668ed;
+  --zi-brand-hover: #0053c7;
+  --zi-brand-soft: #eaf4ff;
+  --zi-brand-soft-strong: #cde8ff;
+  --zi-accent: #15c7e9;
+  --zi-gradient-start: #05bde3;
+  --zi-gradient-end: #1956f3;
+  --zi-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --zi-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --zi-radius-card: 1.25rem;
+  --zi-radius-control: 0.75rem;
+  --zi-shadow-card: 0 1px 2px rgb(7 22 49 / 5%), 0 10px 30px rgb(7 22 49 / 5%);
+  --zi-shadow-card-hover: 0 18px 45px rgb(7 22 49 / 12%);
+  color-scheme: light;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+html.dark {
+  --zi-canvas: #07101f;
+  --zi-canvas-subtle: #0b172b;
+  --zi-surface: #0e1a2d;
+  --zi-surface-elevated: #12223a;
+  --zi-text-primary: #f3f7ff;
+  --zi-text-secondary: #c1cce0;
+  --zi-text-muted: #91a0ba;
+  --zi-text-inverse: #071631;
+  --zi-border-subtle: #223451;
+  --zi-border-strong: #3a4c69;
+  --zi-brand: #58a6ff;
+  --zi-brand-hover: #80bbff;
+  --zi-brand-soft: #102c4e;
+  --zi-brand-soft-strong: #16406d;
+  --zi-accent: #36d7ef;
+  --zi-shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 16px 36px rgb(0 0 0 / 16%);
+  --zi-shadow-card-hover: 0 22px 52px rgb(0 0 0 / 30%);
+  color-scheme: dark;
+}
+
 body {
-  background: #f8fafc;
-  color: #0f172a;
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--zi-canvas);
+  color: var(--zi-text-primary);
+  font-family: var(--zi-font-sans);
   margin: 0;
+  min-width: 320px;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: #a5f3fc;
-  color: #164e63;
+  background: var(--zi-brand-soft-strong);
+  color: var(--zi-text-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  html[data-dark-mode='true'] {
-    color-scheme: dark;
-  }
+a {
+  text-underline-offset: 0.2em;
+}
 
-  html[data-dark-mode='true'] body {
-    background: #020617;
-    color: #f8fafc;
-  }
+button,
+a,
+input,
+dialog {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--zi-brand) 70%, transparent);
+  outline-offset: 3px;
+}
+
+dialog::backdrop {
+  background: rgb(3 12 28 / 62%);
+  backdrop-filter: blur(5px);
+}
+
+.zi-grid-surface {
+  background-image:
+    linear-gradient(rgb(57 129 255 / 8%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(57 129 255 / 8%) 1px, transparent 1px),
+    radial-gradient(circle at 60% 42%, rgb(24 194 239 / 15%), transparent 44%);
+  background-size:
+    28px 28px,
+    28px 28px,
+    auto;
+}
+
+.zi-text-balance {
+  text-wrap: balance;
+}
+
+.zi-scrollbar-none {
+  scrollbar-width: none;
+}
+
+.zi-scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,6 +6,7 @@ import { getActor } from '@/modules/identity'
 import {
   CONTENT_LOCALES,
   cacheTags,
+  getPublicSiteSettings,
   localizedPostPath,
   type ContentLocale,
 } from '@/modules/platform'
@@ -20,6 +21,7 @@ import {
   projectTag,
 } from './projections'
 import type {
+  HomepageContent,
   LocalizedUrls,
   PaginatedPosts,
   PostDetail,
@@ -56,6 +58,13 @@ const publicFeedWhere: Where = {
     { excerpt: { exists: true } },
     { content: { exists: true } },
   ],
+}
+
+function relationIdentifier(value: unknown): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (!value || typeof value !== 'object' || !('id' in value)) return null
+  const id = value.id
+  return typeof id === 'number' || typeof id === 'string' ? id : null
 }
 
 function positiveInteger(value: number | undefined, fallback: number): number {
@@ -139,20 +148,20 @@ export function getFeaturedPosts(input: {
   )()
 }
 
-async function queryHomePageContent(locale: ContentLocale): Promise<{
-  categories: { name: string; slug: string }[]
-  featured: PostSummary[]
-  latest: PaginatedPosts
-}> {
+async function queryHomePageContent(locale: ContentLocale): Promise<HomepageContent> {
   const payload = await getPayloadClient()
-  const [featured, latest, categories] = await Promise.all([
-    getFeaturedPosts({ limit: 3, locale }),
-    getLatestPosts({ limit: 9, locale }),
+  const [featured, latest, categories, series, seriesPosts, settings] = await Promise.all([
+    findPostPage({
+      limit: 1,
+      locale,
+      where: { featured: { equals: true } },
+    }),
+    findPostPage({ limit: 6, locale }),
     payload.find({
       collection: 'categories',
       depth: 0,
       fallbackLocale: false,
-      limit: 20,
+      limit: 6,
       locale,
       overrideAccess: true,
       pagination: false,
@@ -165,19 +174,82 @@ async function queryHomePageContent(locale: ContentLocale): Promise<{
         ],
       },
     }),
+    payload.find({
+      collection: 'series',
+      depth: 1,
+      fallbackLocale: false,
+      limit: 3,
+      locale,
+      overrideAccess: true,
+      pagination: false,
+      select: {
+        coverImage: true,
+        description: true,
+        id: true,
+        slug: true,
+        title: true,
+      },
+      sort: '-updatedAt',
+      where: {
+        and: [
+          { isActive: { equals: true } },
+          { title: { exists: true } },
+          { slug: { exists: true } },
+        ],
+      },
+    }),
+    payload.find({
+      collection: 'posts',
+      depth: 1,
+      draft: false,
+      fallbackLocale: false,
+      limit: 200,
+      locale,
+      overrideAccess: true,
+      pagination: false,
+      select: {
+        id: true,
+        series: true,
+      },
+      where: {
+        and: [publicFeedWhere, { series: { exists: true } }],
+      },
+    }),
+    getPublicSiteSettings(locale),
   ])
+
+  const seriesPostCounts = new Map<number | string, number>()
+  for (const post of seriesPosts.docs) {
+    const seriesId = relationIdentifier(post.series)
+    if (seriesId === null) continue
+    seriesPostCounts.set(seriesId, (seriesPostCounts.get(seriesId) ?? 0) + 1)
+  }
+
   return {
-    categories: categories.docs.map(({ name, slug }) => ({ name, slug })),
-    featured,
-    latest,
+    featuredPost: featured.posts[0] ?? null,
+    featuredSeries: series.docs.flatMap((entry) => {
+      const projected = projectSeries(entry)
+      return projected
+        ? [{ ...projected, publishedPostCount: seriesPostCounts.get(projected.id) ?? 0 }]
+        : []
+    }),
+    featuredTopics: categories.docs.map(projectCategory),
+    hero: {
+      description: settings.siteDescription,
+      siteName: settings.siteName,
+    },
+    latestPosts: latest.posts,
+    popularPosts: [],
   }
 }
 
 export function getHomePageContent(locale: ContentLocale): ReturnType<typeof queryHomePageContent> {
-  return unstable_cache(() => queryHomePageContent(locale), ['home-page', locale], {
-    revalidate: 300,
-    tags: [cacheTags.locale.feed(locale)],
-  })()
+  return env.NODE_ENV === 'test'
+    ? queryHomePageContent(locale)
+    : unstable_cache(() => queryHomePageContent(locale), ['home-page', locale], {
+        revalidate: 300,
+        tags: [cacheTags.locale.feed(locale)],
+      })()
 }
 
 async function queryPublishedPostBySlug(
@@ -223,13 +295,6 @@ export function getPublishedPostBySlug(input: {
           tags: [cacheTags.locale.postSlug(input.locale, input.slug)],
         },
       )()
-}
-
-function relationIdentifier(value: unknown): number | string | null {
-  if (typeof value === 'number' || typeof value === 'string') return value
-  if (!value || typeof value !== 'object' || !('id' in value)) return null
-  const id = value.id
-  return typeof id === 'number' || typeof id === 'string' ? id : null
 }
 
 export async function getAuthorizedDraftPost(input: {

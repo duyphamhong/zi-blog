@@ -79,7 +79,9 @@ export function projectTag(value: Tag | number): PublicTaxonomy {
 export function projectSeries(value: Series | number | null | undefined): PublicSeries | null {
   if (!isPopulated(value)) return null
   return {
+    coverImage: projectMedia(value.coverImage),
     description: value.description,
+    id: value.id,
     slug: value.slug,
     title: value.title,
   }
