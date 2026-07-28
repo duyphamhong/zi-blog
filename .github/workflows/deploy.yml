@@ -143,7 +143,11 @@ jobs:
           fi
 
           docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres
-          docker compose --env-file .env.production -f docker-compose.prod.yml --profile migration run --rm --build migrate
+          # The remote shell reads this deployment script from stdin. Keep the
+          # migration container from consuming the commands that follow it.
+          docker compose --env-file .env.production -f docker-compose.prod.yml \
+            --profile migration run --rm --build -T migrate < /dev/null
+          echo 'Migration completed; starting the Zi-Blog web service.'
           docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans web
 
           WEB_CONTAINER_ID="$(docker compose --env-file .env.production -f docker-compose.prod.yml ps -q web)"
