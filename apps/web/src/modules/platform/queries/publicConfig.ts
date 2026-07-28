@@ -31,6 +31,17 @@ export type PublicNavigation = {
   socialLinks: { label: string; url: string }[]
 }
 
+export function resolvePublicSiteUrl(value: unknown): string {
+  if (typeof value !== 'string') return env.SERVER_URL
+
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : env.SERVER_URL
+  } catch {
+    return env.SERVER_URL
+  }
+}
+
 function referenceHref(reference: unknown, locale: ContentLocale): string | null {
   if (!reference || typeof reference !== 'object' || !('relationTo' in reference)) return null
   if (!('value' in reference) || !reference.value || typeof reference.value !== 'object')
@@ -98,7 +109,7 @@ async function queryPublicSiteSettings(locale: ContentLocale): Promise<PublicSit
     postsPerPage: settings.postsPerPage,
     siteDescription: settings.siteDescription,
     siteName: settings.siteName,
-    siteUrl: settings.siteUrl,
+    siteUrl: resolvePublicSiteUrl(settings.siteUrl),
   }
 }
 
