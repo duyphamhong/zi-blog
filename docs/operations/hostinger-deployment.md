@@ -27,6 +27,7 @@ secrets:
 | ------------------------------------------------------------ | --------------------------------------------------------------------------- |
 | `VPS_HOST`, `VPS_SSH_PORT`, `VPS_SSH_USER`                   | Hostinger SSH connection. `VPS_SSH_PORT` may be omitted for port 22.        |
 | `VPS_SSH_PRIVATE_KEY`                                        | Deploy key allowed to connect to the VPS.                                   |
+| `VPS_SSH_KEY_PASSPHRASE`                                     | Optional passphrase for the deploy key; omit only for an unencrypted key.   |
 | `VPS_SSH_KNOWN_HOSTS`                                        | Recommended pinned `known_hosts` entry for the VPS.                         |
 | `VPS_DEPLOY_PATH`                                            | Optional deployment root; defaults to `/opt/zi-blog`.                       |
 | `NEXT_PUBLIC_SERVER_URL`                                     | Public HTTPS origin, for example `https://blog.example.com`.                |

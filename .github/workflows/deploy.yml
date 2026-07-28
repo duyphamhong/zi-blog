@@ -31,6 +31,7 @@ jobs:
       VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+      VPS_SSH_KEY_PASSPHRASE: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
       VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
       VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
       VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
@@ -56,6 +57,12 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          if [ -n "$VPS_SSH_KEY_PASSPHRASE" ]; then
+            ssh-keygen -p -q \
+              -P "$VPS_SSH_KEY_PASSPHRASE" \
+              -N '' \
+              -f ~/.ssh/id_ed25519
+          fi
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
 
       - name: Trust VPS host key
