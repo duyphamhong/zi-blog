@@ -1,10 +1,13 @@
 # Implementation Rules
 
-Codex must read and follow this file before implementing any plan.
+Codex must read and follow this file before implementing any task or plan.
 
-## Rule 1 — Branch, pull request, and merge workflow
+## Rule 1 — Large-task branch, pull request, and merge workflow
 
-Before implementing a new plan:
+This workflow applies only to large tasks and the implementation of a new
+project phase.
+
+Before implementing a large task or new phase:
 
 1. Fetch the latest remote state.
 2. Check out `main` and update it to the latest remote `main` with a
@@ -32,3 +35,18 @@ locale seed constants when the dictionary already owns the value. Route segments
 database field names, protocol values, regular expressions, and other
 non-copy technical literals must also be centralized in the appropriate
 domain-owned constant file rather than repeated inline.
+
+## Rule 3 — Small-task and bug-fix Git ownership
+
+For small tasks and bug fixes:
+
+1. A human is responsible for creating or selecting the working branch.
+2. Codex must use the human-provided branch and must not create a new branch.
+3. Codex must not commit the changes. Leave the changes uncommitted for a human
+   to review and commit.
+4. If a human-provided branch is not available, Codex must stop before
+   implementation and ask a human to prepare or select the branch.
+
+If the task size is unclear, treat it as a small task: do not create a branch
+or commit changes until a human explicitly classifies it as a large task or
+new-phase implementation.
