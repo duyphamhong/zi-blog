@@ -1,4 +1,7 @@
+import { CodeBlock as createPayloadCodeBlock } from '@payloadcms/richtext-lexical'
 import type { Block } from 'payload'
+
+const payloadCodeBlock = createPayloadCodeBlock()
 
 export const CodeBlock: Block = {
   slug: 'code',
@@ -24,4 +27,5 @@ export const CodeBlock: Block = {
       required: true,
     },
   ],
+  jsx: payloadCodeBlock.jsx,
 }

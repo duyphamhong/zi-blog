@@ -317,6 +317,15 @@ export interface Post {
     };
     [k: string]: unknown;
   };
+  /**
+   * Use TITLE, SLUG, EXCERPT, SEO_TITLE, SEO_DESCRIPTION, then a standalone CONTENT: line. Unchanged source is not imported again unless you check the import box.
+   */
+  markdownSource?: string | null;
+  /**
+   * On the next Save or Publish, replace Content from the current Markdown source. This also force re-imports unchanged source and resets after success.
+   */
+  importMarkdownIntoContent?: boolean | null;
+  lastImportedMarkdownHash?: string | null;
   coverImage?: (number | null) | Media;
   author: number | User;
   coAuthors?: (number | User)[] | null;
@@ -618,6 +627,9 @@ export interface PostsSelect<T extends boolean = true> {
   slug?: T;
   excerpt?: T;
   content?: T;
+  markdownSource?: T;
+  importMarkdownIntoContent?: T;
+  lastImportedMarkdownHash?: T;
   coverImage?: T;
   author?: T;
   coAuthors?: T;

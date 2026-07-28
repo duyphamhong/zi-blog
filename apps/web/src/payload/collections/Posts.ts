@@ -1,29 +1,26 @@
-import {
-  BlocksFeature,
-  FixedToolbarFeature,
-  HeadingFeature,
-  HorizontalRuleFeature,
-  InlineToolbarFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical'
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, FieldAccess } from 'payload'
 
+import { env } from '@/config/env'
 import {
+  isActiveStaff,
   postCreateAccess,
   postDeleteAccess,
   postReadAccess,
   postUpdateAccess,
 } from '@/modules/identity'
-import { env } from '@/config/env'
-import { CodeBlock } from '@/payload/blocks/Code'
+import { removePostSearchBeforeDelete, synchronizePostSearchAfterChange } from '@/modules/search'
+import { postContentEditor } from '@/payload/fields/postContentEditor'
 import { seoFields } from '@/payload/fields/seoFields'
 import { slugField } from '@/payload/fields/slugField'
+import { importPostMarkdown } from '@/payload/hooks/importPostMarkdown'
 import { preparePost } from '@/payload/hooks/preparePost'
 import {
   revalidatePostAfterChange,
   revalidatePostAfterDelete,
 } from '@/payload/hooks/revalidatePost'
-import { removePostSearchBeforeDelete, synchronizePostSearchAfterChange } from '@/modules/search'
+
+const staffCanReadImportFields: FieldAccess = ({ req }) => isActiveStaff(req.user)
+const denyImportHashMutation: FieldAccess = () => false
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -82,17 +79,64 @@ export const Posts: CollectionConfig = {
       type: 'richText',
       label: { en: 'Content', vi: 'Nội dung' },
       localized: true,
-      editor: lexicalEditor({
-        features: ({ rootFeatures }) => [
-          ...rootFeatures,
-          HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
-          BlocksFeature({ blocks: [CodeBlock] }),
-          FixedToolbarFeature(),
-          InlineToolbarFeature(),
-          HorizontalRuleFeature(),
-        ],
-      }),
+      editor: postContentEditor,
       required: true,
+    },
+    {
+      type: 'collapsible',
+      label: { en: 'Markdown Import', vi: 'Nhập Markdown' },
+      admin: {
+        description:
+          'Paste a Zi-Blog Markdown article, check Import Markdown into Content, then Save or Publish. Clearing the source does not clear Content.',
+        initCollapsed: true,
+      },
+      fields: [
+        {
+          name: 'markdownSource',
+          type: 'textarea',
+          access: {
+            read: staffCanReadImportFields,
+          },
+          admin: {
+            description:
+              'Use TITLE, SLUG, EXCERPT, SEO_TITLE, SEO_DESCRIPTION, then a standalone CONTENT: line. Unchanged source is not imported again unless you check the import box.',
+            rows: 18,
+          },
+          label: { en: 'Zi-Blog Markdown source', vi: 'Nguồn Markdown Zi-Blog' },
+          localized: true,
+        },
+        {
+          name: 'importMarkdownIntoContent',
+          type: 'checkbox',
+          access: {
+            read: staffCanReadImportFields,
+          },
+          admin: {
+            description:
+              'On the next Save or Publish, replace Content from the current Markdown source. This also force re-imports unchanged source and resets after success.',
+          },
+          defaultValue: false,
+          label: {
+            en: 'Import Markdown into Content',
+            vi: 'Nhập Markdown vào nội dung',
+          },
+          localized: true,
+        },
+      ],
+    },
+    {
+      name: 'lastImportedMarkdownHash',
+      type: 'text',
+      access: {
+        create: denyImportHashMutation,
+        read: staffCanReadImportFields,
+        update: denyImportHashMutation,
+      },
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
+      localized: true,
     },
     { name: 'coverImage', type: 'upload', relationTo: 'media' },
     {
@@ -162,7 +206,7 @@ export const Posts: CollectionConfig = {
     afterChange: [synchronizePostSearchAfterChange, revalidatePostAfterChange],
     afterDelete: [revalidatePostAfterDelete],
     beforeDelete: [removePostSearchBeforeDelete],
-    beforeChange: [preparePost],
+    beforeChange: [importPostMarkdown, preparePost],
   },
   timestamps: true,
   versions: {
