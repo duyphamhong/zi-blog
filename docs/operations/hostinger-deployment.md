@@ -20,6 +20,11 @@ revision, uploads it over SSH, applies only committed Payload migrations,
 restarts the app, verifies container readiness, and finally calls the public
 readiness endpoint.
 
+The migration container runs without a TTY and with stdin disconnected. This is
+required because the remote deployment script itself is streamed to SSH over
+stdin; allowing `docker compose run` to inherit that stream would consume the
+remaining commands before the `web` service is created.
+
 Create a GitHub Environment named `production`, then add these environment
 secrets:
 
