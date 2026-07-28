@@ -50,6 +50,36 @@ test('language switch tolerates browser-added root attributes', async ({ page })
   expect(hydrationErrors).toEqual([])
 })
 
+test('Payload Admin tolerates browser-added root attributes', async ({ page }) => {
+  const hydrationErrors: string[] = []
+  page.on('console', (message) => {
+    if (
+      (message.type() === 'error' || message.type() === 'warning') &&
+      message.text().includes('A tree hydrated but some attributes')
+    ) {
+      hydrationErrors.push(message.text())
+    }
+  })
+
+  await page.addInitScript(() => {
+    const markRoot = () => {
+      document.documentElement?.setAttribute('data-browser-extension', 'enabled')
+    }
+    markRoot()
+    if (!document.documentElement) {
+      const observer = new MutationObserver(() => {
+        markRoot()
+        if (document.documentElement) observer.disconnect()
+      })
+      observer.observe(document, { childList: true })
+    }
+  })
+
+  await page.goto('/admin/login')
+  await expect(page.getByRole('textbox', { name: 'Email *' })).toBeVisible({ timeout: 15_000 })
+  expect(hydrationErrors).toEqual([])
+})
+
 test('draft URL is not publicly accessible', async ({ page }) => {
   await page.goto('/vi/posts/kiem-thu-ranh-gioi-xuat-ban-ban-nhap')
   await expect(page.getByRole('heading', { name: 'Không tìm thấy trang' })).toBeVisible()
