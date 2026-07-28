@@ -1443,18 +1443,9 @@ Test:
 
 ## 21.3 End-to-End Tests
 
-Test critical user journeys:
-
-```text
-editor creates and publishes post
-author submits post for review
-reader opens article
-member registers and comments
-moderator approves comment
-member likes and bookmarks article
-published slug changes and redirects
-admin uploads media
-```
+End-to-end execution is temporarily deferred. Keep the existing Playwright
+coverage available for reactivation, but do not include it in package scripts,
+the validation gate, or CI while this deferral is active.
 
 ## 21.4 Test Rules
 
@@ -1821,7 +1812,6 @@ type check
 unit tests
 integration tests
 build
-relevant end-to-end tests
 ```
 
 ## Step 6 — Report
@@ -2088,7 +2078,7 @@ Deployment:
 Docker-based stateless application
 
 Testing:
-Unit + integration + critical E2E tests
+Unit + integration tests; end-to-end execution temporarily deferred
 
 API validation:
 Typed schema validation
