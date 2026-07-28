@@ -110,10 +110,10 @@ jobs:
 
           with open(sys.argv[1], 'w', encoding='utf-8') as output:
               for key, value in values.items():
-                  output.write(f'{key}={quote(value)}\\n')
+                  output.write(f'{key}={quote(value)}\n')
           PY
           echo "RELEASE_ARCHIVE=$RELEASE_ARCHIVE" >> "$GITHUB_ENV"
-          echo "PRODUCTION_ENV_B64=$(base64 -w 0 "$ENV_FILE")" >> "$GITHUB_ENV"
+          echo "PRODUCTION_ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
 
       - name: Upload release bundle
         run: |
@@ -121,19 +121,20 @@ jobs:
           DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/zi-blog}"
           ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "mkdir -p '$DEPLOY_PATH/releases'"
           scp -P "${VPS_SSH_PORT:-22}" "$RELEASE_ARCHIVE" "$VPS_SSH_USER@$VPS_HOST:$DEPLOY_PATH/releases/$DEPLOY_SHA.tgz"
+          scp -P "${VPS_SSH_PORT:-22}" "$PRODUCTION_ENV_FILE" "$VPS_SSH_USER@$VPS_HOST:$DEPLOY_PATH/releases/$DEPLOY_SHA.env.production"
 
       - name: Deploy and migrate on VPS
         run: |
           set -euo pipefail
           DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/zi-blog}"
-          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "export DEPLOY_PATH='$DEPLOY_PATH' DEPLOY_SHA='$DEPLOY_SHA' PRODUCTION_ENV_B64='$PRODUCTION_ENV_B64'; bash -s" <<'EOF'
+          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "export DEPLOY_PATH='$DEPLOY_PATH' DEPLOY_SHA='$DEPLOY_SHA'; bash -s" <<'EOF'
           set -euo pipefail
 
           RELEASE_DIR="$DEPLOY_PATH/releases/$DEPLOY_SHA"
           mkdir -p "$RELEASE_DIR"
           tar -xzf "$DEPLOY_PATH/releases/$DEPLOY_SHA.tgz" -C "$RELEASE_DIR"
           rm -f "$DEPLOY_PATH/releases/$DEPLOY_SHA.tgz"
-          printf '%s' "$PRODUCTION_ENV_B64" | base64 -d > "$RELEASE_DIR/.env.production"
+          mv "$DEPLOY_PATH/releases/$DEPLOY_SHA.env.production" "$RELEASE_DIR/.env.production"
 
           cd "$RELEASE_DIR"
           if ! docker network inspect public-ingress > /dev/null 2>&1; then
