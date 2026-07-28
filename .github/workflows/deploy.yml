@@ -137,8 +137,9 @@ jobs:
           mv "$DEPLOY_PATH/releases/$DEPLOY_SHA.env.production" "$RELEASE_DIR/.env.production"
 
           cd "$RELEASE_DIR"
-          if ! docker network inspect public-ingress > /dev/null 2>&1; then
-            docker network create public-ingress
+          INGRESS_NETWORK="${PUBLIC_INGRESS_NETWORK:-public-ingress}"
+          if ! docker network inspect "$INGRESS_NETWORK" > /dev/null 2>&1; then
+            docker network create "$INGRESS_NETWORK"
           fi
 
           docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres
@@ -146,6 +147,8 @@ jobs:
           docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --remove-orphans web
 
           WEB_CONTAINER_ID="$(docker compose --env-file .env.production -f docker-compose.prod.yml ps -q web)"
+          test -n "$WEB_CONTAINER_ID"
+
           for attempt in $(seq 1 30); do
             status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}starting{{end}}' "$WEB_CONTAINER_ID")"
             if [ "$status" = healthy ]; then
@@ -159,6 +162,29 @@ jobs:
           done
           test "$(docker inspect -f '{{.State.Health.Status}}' "$WEB_CONTAINER_ID")" = healthy
           docker compose --env-file .env.production -f docker-compose.prod.yml exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
+
+          GATEWAY_CONTAINER_ID="$(docker ps -q --filter 'label=com.docker.compose.project=nginx-gateway' --filter 'label=com.docker.compose.service=nginx' | head -n 1)"
+          test -n "$GATEWAY_CONTAINER_ID" || { echo 'Nginx gateway container was not found.'; exit 1; }
+          docker network connect "$INGRESS_NETWORK" "$GATEWAY_CONTAINER_ID" 2> /dev/null || true
+
+          verify_gateway_upstream() {
+            docker exec "$GATEWAY_CONTAINER_ID" getent hosts zi-blog-web
+            docker exec "$GATEWAY_CONTAINER_ID" wget -q -T 10 -O /dev/null http://zi-blog-web:3000/api/health/ready
+          }
+
+          if ! verify_gateway_upstream; then
+            # Restore the stable Docker DNS alias if a prior deployment left the
+            # web container attached without it, then allow Nginx's resolver to refresh.
+            docker network disconnect "$INGRESS_NETWORK" "$WEB_CONTAINER_ID" 2> /dev/null || true
+            docker network connect --alias zi-blog-web "$INGRESS_NETWORK" "$WEB_CONTAINER_ID"
+            for attempt in $(seq 1 6); do
+              if verify_gateway_upstream; then
+                break
+              fi
+              sleep 5
+            done
+          fi
+          verify_gateway_upstream
           docker compose --env-file .env.production -f docker-compose.prod.yml ps
           EOF
 
