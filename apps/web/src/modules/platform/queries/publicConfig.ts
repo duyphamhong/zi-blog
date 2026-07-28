@@ -6,6 +6,8 @@ import { getPayloadClient } from '@/shared/payload/client'
 
 import { cacheTags } from '../cache/tags'
 import { localePath, type ContentLocale } from '../i18n'
+import { enDictionary } from '../i18n/dictionaries/en'
+import { viDictionary } from '../i18n/dictionaries/vi'
 
 export type PublicSiteSettings = Pick<
   SiteSetting,
@@ -50,6 +52,7 @@ function projectLinks(
   locale: ContentLocale,
   placement: 'footer' | 'header',
 ): PublicNavigationLink[] {
+  const dictionary = locale === 'vi' ? viDictionary : enDictionary
   return (
     links?.flatMap((link) => {
       const href = link.type === 'external' ? link.url : referenceHref(link.reference, locale)
@@ -67,15 +70,11 @@ function projectLinks(
         typeof referenceValue.name === 'string'
           ? referenceValue.name
           : reference?.relationTo === 'series'
-            ? 'Series'
+            ? dictionary.navigation.series
             : reference?.relationTo === 'posts'
               ? placement === 'header'
-                ? locale === 'vi'
-                  ? 'Nổi bật'
-                  : 'Featured'
-                : locale === 'vi'
-                  ? 'Bài viết'
-                  : 'Posts'
+                ? dictionary.navigation.featured
+                : dictionary.navigation.posts
               : '')
       return href && label ? [{ href, label, openInNewTab: Boolean(link.openInNewTab) }] : []
     }) ?? []

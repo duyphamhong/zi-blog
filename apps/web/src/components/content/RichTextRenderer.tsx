@@ -4,6 +4,8 @@ import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import type { CodeBlock as CodeBlockData, Post } from '@/payload-types'
 import type { ContentLocale } from '@/modules/platform'
+import { enDictionary } from '@/modules/platform/i18n/dictionaries/en'
+import { viDictionary } from '@/modules/platform/i18n/dictionaries/vi'
 
 import { CodeBlock } from './CodeBlock'
 
@@ -16,14 +18,15 @@ export function RichTextRenderer({
   content: Post['content']
   locale?: ContentLocale
 }) {
+  const dictionary = locale === 'vi' ? viDictionary : enDictionary
   const converters: JSXConvertersFunction<BlogNodeTypes> = ({ defaultConverters }) => ({
     ...defaultConverters,
     blocks: {
       code: ({ node }) => (
         <CodeBlock
           code={node.fields.code}
-          copiedLabel={locale === 'vi' ? 'Đã sao chép' : 'Copied'}
-          copyLabel={locale === 'vi' ? 'Sao chép mã' : 'Copy code'}
+          copiedLabel={dictionary.code.copied}
+          copyLabel={dictionary.code.copy}
           filename={node.fields.filename}
           language={node.fields.language}
         />

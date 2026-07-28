@@ -2,6 +2,8 @@ import type { Payload } from 'payload'
 
 import { env } from '@/config/env'
 import type { ContentLocale } from '@/modules/platform'
+import { enDictionary } from '@/modules/platform/i18n/dictionaries/en'
+import { viDictionary } from '@/modules/platform/i18n/dictionaries/vi'
 
 import { lexicalDocument } from './content'
 
@@ -494,23 +496,17 @@ export async function seed(payload: Payload): Promise<void> {
   ])
 
   for (const locale of ['vi', 'en'] as const) {
+    const localizedDictionary = locale === 'vi' ? viDictionary : enDictionary
     await payload.updateGlobal({
       context: seedContext,
       data: {
         defaultAuthor: author.id,
-        defaultSeoDescription:
-          locale === 'vi'
-            ? 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.'
-            : 'Practical engineering notes for people who build software.',
-        defaultSeoTitle:
-          locale === 'vi' ? 'Ghi chép công nghệ Zi-Blog' : 'Zi-Blog Technology Notes',
+        defaultSeoDescription: localizedDictionary.site.defaultSeoDescription,
+        defaultSeoTitle: localizedDictionary.site.defaultSeoTitle,
         enableDarkMode: true,
         postsPerPage: 10,
-        siteDescription:
-          locale === 'vi'
-            ? 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.'
-            : 'Practical engineering notes for people who build software.',
-        siteName: 'Zi-Blog',
+        siteDescription: localizedDictionary.site.description,
+        siteName: localizedDictionary.site.name,
         siteUrl: env.SERVER_URL,
       },
       locale,
@@ -522,33 +518,30 @@ export async function seed(payload: Payload): Promise<void> {
       data: {
         footerLinks: [
           {
-            label: locale === 'vi' ? 'Bài viết' : 'Posts',
+            label: localizedDictionary.navigation.posts,
             reference: { relationTo: 'posts', value: posts[0].id },
             type: 'internal',
           },
           {
-            label: locale === 'vi' ? 'Tìm kiếm' : 'Search',
+            label: localizedDictionary.navigation.search,
             type: 'external',
             url: `${env.SERVER_URL}/${locale}/search`,
           },
         ],
-        footerText:
-          locale === 'vi'
-            ? 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.'
-            : 'Practical engineering notes for people who build software.',
+        footerText: localizedDictionary.footer.content,
         headerLinks: [
           {
-            label: locale === 'vi' ? 'Nổi bật' : 'Featured',
+            label: localizedDictionary.navigation.featured,
             reference: { relationTo: 'posts', value: posts[0].id },
             type: 'internal',
           },
           {
-            label: locale === 'vi' ? 'Kiến trúc' : 'Architecture',
+            label: localizedDictionary.navigation.architecture,
             reference: { relationTo: 'categories', value: architecture.id },
             type: 'internal',
           },
           {
-            label: locale === 'vi' ? 'Loạt bài' : 'Series',
+            label: localizedDictionary.navigation.series,
             reference: { relationTo: 'series', value: series.id },
             type: 'internal',
           },

@@ -28,19 +28,20 @@ export const enDictionary = {
     tryAgain: 'Try again',
   },
   footer: {
-    fallback: 'Practical engineering notes for people who build software.',
+    content: 'Practical engineering notes for Pure Software Engineers.',
     navigation: 'Footer navigation',
     rights: 'All rights reserved.',
   },
   home: {
     browseCategories: 'Browse categories',
-    eyebrow: 'Technology, explained',
+    eyebrow: 'Road to Solution Architect',
     featuredPosts: 'Featured posts',
     freshIdeas: 'Fresh ideas',
-    heading: 'Build better systems with practical engineering stories.',
+    heading:
+      'Become a true architect through practical engineering stories and fresh perspectives.',
     intro: 'Architecture, tooling, and lessons learned from shipping software.',
     latestPosts: 'Latest posts',
-    noPosts: 'Publish a post in Payload Admin and it will appear here. Drafts stay private.',
+    noPosts: 'Publish a post in Admin and it will appear here. Drafts stay private.',
     postCount: 'published posts',
     primaryCta: 'Explore articles',
     secondaryCta: 'Browse series',
@@ -51,8 +52,19 @@ export const enDictionary = {
     viewAll: 'View all',
   },
   navigation: {
+    architecture: 'Architecture',
+    featured: 'Featured',
     posts: 'Posts',
     search: 'Search',
+    series: 'Series',
+  },
+  preview: {
+    protectedNotice: 'Protected preview — this content may not be published.',
+    title: 'Content preview',
+  },
+  code: {
+    copied: 'Copied',
+    copy: 'Copy code',
   },
   notFound: {
     description: 'The content may not exist, may still be a draft, or may have moved.',
@@ -96,5 +108,11 @@ export const enDictionary = {
     resultsFor: 'Results for',
     shortcutHint: 'Press Ctrl K from any page to open search.',
     title: 'Search',
+  },
+  site: {
+    defaultSeoDescription: 'Practical engineering notes for Pure Software Engineers.',
+    defaultSeoTitle: 'Zi-Blog Technology Notes',
+    description: 'Practical engineering notes for Pure Software Engineers.',
+    name: 'Zi-Blog',
   },
 } as const

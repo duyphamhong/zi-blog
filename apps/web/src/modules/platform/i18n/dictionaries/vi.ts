@@ -30,19 +30,20 @@ export const viDictionary = {
     tryAgain: 'Thử lại',
   },
   footer: {
-    fallback: 'Ghi chép kỹ thuật thực tiễn dành cho người xây dựng phần mềm.',
+    content: 'Ghi chép kỹ thuật thực tiễn dành cho các kỹ sư phần mềm thực thụ.',
     navigation: 'Điều hướng chân trang',
     rights: 'Đã đăng ký bản quyền.',
   },
   home: {
     browseCategories: 'Duyệt chuyên mục',
-    eyebrow: 'Công nghệ, được giải thích rõ ràng',
+    eyebrow: 'Solution Architect, tại sao không?',
     featuredPosts: 'Bài viết nổi bật',
     freshIdeas: 'Ý tưởng mới',
-    heading: 'Xây dựng hệ thống tốt hơn qua những câu chuyện kỹ thuật thực tiễn.',
+    heading:
+      'Trở thành kiến trúc sư thực thụ qua những câu chuyện kỹ thuật thực tiễn và những góc nhìn khác biệt.',
     intro: 'Kiến trúc, công cụ và bài học từ quá trình phát triển phần mềm.',
     latestPosts: 'Bài viết mới nhất',
-    noPosts: 'Hãy xuất bản một bài trong Payload Admin. Bản nháp luôn được giữ riêng tư.',
+    noPosts: 'Hãy xuất bản một bài trong Admin. Bản nháp luôn được giữ riêng tư.',
     postCount: 'bài đã xuất bản',
     primaryCta: 'Khám phá bài viết',
     secondaryCta: 'Xem Series',
@@ -53,8 +54,19 @@ export const viDictionary = {
     viewAll: 'Xem tất cả',
   },
   navigation: {
+    architecture: 'Kiến trúc',
+    featured: 'Nổi bật',
     posts: 'Bài viết',
     search: 'Tìm kiếm',
+    series: 'Loạt bài',
+  },
+  preview: {
+    protectedNotice: 'Bản xem trước được bảo vệ — nội dung này chưa được xuất bản.',
+    title: 'Bản xem trước nội dung',
+  },
+  code: {
+    copied: 'Đã sao chép',
+    copy: 'Sao chép mã',
   },
   notFound: {
     description: 'Nội dung có thể không tồn tại, vẫn là bản nháp hoặc đã được chuyển.',
@@ -98,5 +110,11 @@ export const viDictionary = {
     resultsFor: 'Kết quả cho',
     shortcutHint: 'Nhấn Ctrl K ở bất kỳ trang nào để mở tìm kiếm.',
     title: 'Tìm kiếm',
+  },
+  site: {
+    defaultSeoDescription: 'Ghi chép kỹ thuật thực tiễn dành cho các kỹ sư phần mềm thực thụ.',
+    defaultSeoTitle: 'Ghi chép công nghệ Zi-Blog',
+    description: 'Ghi chép kỹ thuật thực tiễn dành cho các kỹ sư phần mềm thực thụ.',
+    name: 'Zi-Blog',
   },
 } as const satisfies AppDictionary
