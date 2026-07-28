@@ -72,6 +72,11 @@ creating `.env`, start Docker Desktop and run the
 See `docs/development/local-setup.md` for the server-only and browser-only
 debugging profiles and breakpoint guidance.
 
+Editors can import localized Zi-Blog Markdown into the existing Lexical content
+field through Payload Admin. See `docs/development/markdown-import.md` for the
+source format, safe import trigger, overwrite protection, and supported
+Markdown structures.
+
 ## Full container workflow
 
 ```bash
