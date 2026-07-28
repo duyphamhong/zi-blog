@@ -144,7 +144,7 @@ jobs:
 
           docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres
           docker compose --env-file .env.production -f docker-compose.prod.yml --profile migration run --rm --build migrate
-          docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --remove-orphans web
+          docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans web
 
           WEB_CONTAINER_ID="$(docker compose --env-file .env.production -f docker-compose.prod.yml ps -q web)"
           test -n "$WEB_CONTAINER_ID"
@@ -162,6 +162,18 @@ jobs:
           done
           test "$(docker inspect -f '{{.State.Health.Status}}' "$WEB_CONTAINER_ID")" = healthy
           docker compose --env-file .env.production -f docker-compose.prod.yml exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
+
+          # A health check at startup alone cannot detect a process that exits
+          # immediately afterward. Confirm the service remains healthy.
+          for attempt in $(seq 1 3); do
+            sleep 5
+            status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}stopped{{end}}' "$WEB_CONTAINER_ID")"
+            if [ "$status" != healthy ]; then
+              docker compose --env-file .env.production -f docker-compose.prod.yml ps --all
+              docker compose --env-file .env.production -f docker-compose.prod.yml logs --no-color web
+              exit 1
+            fi
+          done
 
           GATEWAY_CONTAINER_ID="$(docker ps -q --filter 'label=com.docker.compose.project=nginx-gateway' --filter 'label=com.docker.compose.service=nginx' | head -n 1)"
           test -n "$GATEWAY_CONTAINER_ID" || { echo 'Nginx gateway container was not found.'; exit 1; }
@@ -185,6 +197,14 @@ jobs:
             done
           fi
           verify_gateway_upstream
+
+          # The gateway resolves upstream DNS itself. Reload it after the web
+          # container is attached so an old resolver cache cannot keep serving 502.
+          docker exec "$GATEWAY_CONTAINER_ID" nginx -t
+          docker exec "$GATEWAY_CONTAINER_ID" nginx -s reload
+          docker exec "$GATEWAY_CONTAINER_ID" wget --no-check-certificate -q -T 10 \
+            --header='Host: blog.appzihub.fun' \
+            -O /dev/null https://127.0.0.1/api/health/ready
           docker compose --env-file .env.production -f docker-compose.prod.yml ps
           EOF
 
@@ -197,4 +217,18 @@ jobs:
         if: failure()
         run: |
           DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/zi-blog}"
-          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "cd '$DEPLOY_PATH/releases/$DEPLOY_SHA' && docker compose --env-file .env.production -f docker-compose.prod.yml logs --no-color web postgres || true"
+          ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "export DEPLOY_PATH='$DEPLOY_PATH' DEPLOY_SHA='$DEPLOY_SHA'; bash -s" <<'EOF'
+          set -u
+          cd "$DEPLOY_PATH/releases/$DEPLOY_SHA"
+          docker compose --env-file .env.production -f docker-compose.prod.yml ps --all || true
+          docker compose --env-file .env.production -f docker-compose.prod.yml logs --no-color web postgres || true
+          docker ps -a --filter 'label=com.docker.compose.project=zi-blog' --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' || true
+          for container_id in $(docker ps -aq --filter 'label=com.docker.compose.project=zi-blog' --filter 'label=com.docker.compose.service=web'); do
+            docker inspect -f 'web state={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}} finished={{.State.FinishedAt}} error={{.State.Error}}' "$container_id" || true
+          done
+          GATEWAY_CONTAINER_ID="$(docker ps -q --filter 'label=com.docker.compose.project=nginx-gateway' --filter 'label=com.docker.compose.service=nginx' | head -n 1)"
+          if [ -n "$GATEWAY_CONTAINER_ID" ]; then
+            docker logs --tail 200 "$GATEWAY_CONTAINER_ID" || true
+            docker exec "$GATEWAY_CONTAINER_ID" nginx -T 2>&1 | sed -n '/server_name blog\.appzihub\.fun/,/}/p' || true
+          fi
+          EOF
