@@ -43,6 +43,12 @@ locale. Hooks rebuild both locale projections after a post write because shared
 fields can affect both. Vietnamese text has accents removed only in the
 normalized search column; displayed content remains unchanged.
 
+The full `normalizedSearchText` value is deliberately not B-tree indexed.
+PostgreSQL B-tree entries have a bounded row size and cannot safely store long
+article projections; Payload's substring search also does not benefit from that
+index shape. A trigram or full-text index can be introduced later through an
+explicit migration when measured search volume requires it.
+
 Localized cache keys and tags contain the locale. A localized write revalidates
 both languages defensively, including feeds, search results, taxonomy pages,
 old/new post paths, and localized post tags.
