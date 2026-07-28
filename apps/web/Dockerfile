@@ -9,9 +9,9 @@ FROM base AS builder
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 RUN corepack pnpm install --frozen-lockfile
-ARG DATABASE_URI
-ARG NEXT_PUBLIC_SERVER_URL
-ARG PAYLOAD_SECRET
+ARG DATABASE_URI=postgresql://build:build@postgres:5432/build
+ARG NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+ARG PAYLOAD_SECRET=build-time-only-payload-secret-at-least-32-characters
 ENV DATABASE_URI=$DATABASE_URI
 ENV NEXT_PUBLIC_SERVER_URL=$NEXT_PUBLIC_SERVER_URL
 ENV PAYLOAD_SECRET=$PAYLOAD_SECRET

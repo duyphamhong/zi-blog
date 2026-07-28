@@ -1,0 +1,87 @@
+name: zi-blog
+
+services:
+  postgres:
+    image: postgres:16.9-alpine
+    env_file:
+      - .env.production
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - internal
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: builder
+      args:
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+    command: corepack pnpm --filter web db:migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+    networks:
+      - internal
+    profiles:
+      - migration
+    restart: 'no'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    expose:
+      - '3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      internal: {}
+      public-ingress:
+        aliases:
+          - zi-blog-web
+    restart: unless-stopped
+    volumes:
+      - web_media:/app/apps/web/public/media
+
+volumes:
+  postgres_data:
+  web_media:
+
+networks:
+  internal:
+    driver: bridge
+  public-ingress:
+    external: true
+    name: ${PUBLIC_INGRESS_NETWORK:-public-ingress}

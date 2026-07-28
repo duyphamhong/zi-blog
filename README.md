@@ -85,13 +85,22 @@ pnpm seed
 docker compose logs -f web
 ```
 
-The web container runs committed migrations before starting the standalone
-Next.js server. The seed remains an explicit host-side command and connects to
-the published PostgreSQL port; it is never part of production startup.
+The production deployment workflow runs committed migrations before it starts
+the standalone Next.js server. The seed remains an explicit host-side command
+and connects to the published PostgreSQL port; it is never part of production
+startup.
 
 Uploaded media is stored in a named Docker volume. Local filesystem media is a
 Phase 1 constraint; use persistent S3-compatible object storage before a
 multi-instance production deployment.
+
+## Hostinger deployment
+
+The production CD workflow deploys the validated `main` revision to the shared
+Hostinger Docker ingress. See
+[`docs/operations/hostinger-deployment.md`](docs/operations/hostinger-deployment.md)
+for required GitHub Environment secrets, Nginx gateway registration, migrations,
+and first-deploy steps.
 
 ## Database migrations
 
