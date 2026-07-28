@@ -58,6 +58,11 @@ Deploy the gateway change and provision its TLS certificate before enabling the
 Zi-Blog CD workflow. The final public health check intentionally fails until
 this route is live.
 
+The `Provision Zi-Blog TLS certificate` workflow is manually triggered and
+uses the existing gateway webroot to issue `blog.appzihub.fun`. Run it before
+merging the gateway route PR; it uses `SEED_ADMIN_EMAIL` as the Certbot contact
+email and never prints SSH credentials.
+
 ## First deployment and operations
 
 The database starts empty. CD runs migrations but deliberately does not run
