@@ -74,6 +74,11 @@ export interface Config {
     series: Series;
     posts: Post;
     'search-documents': SearchDocument;
+    'anonymous-profiles': AnonymousProfile;
+    reactions: Reaction;
+    comments: Comment;
+    'analytics-events': AnalyticsEvent;
+    'post-statistics': PostStatistic;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +93,11 @@ export interface Config {
     series: SeriesSelect<false> | SeriesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     'search-documents': SearchDocumentsSelect<false> | SearchDocumentsSelect<true>;
+    'anonymous-profiles': AnonymousProfilesSelect<false> | AnonymousProfilesSelect<true>;
+    reactions: ReactionsSelect<false> | ReactionsSelect<true>;
+    comments: CommentsSelect<false> | CommentsSelect<true>;
+    'analytics-events': AnalyticsEventsSelect<false> | AnalyticsEventsSelect<true>;
+    'post-statistics': PostStatisticsSelect<false> | PostStatisticsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -100,10 +110,12 @@ export interface Config {
   globals: {
     'site-settings': SiteSetting;
     navigation: Navigation;
+    'community-settings': CommunitySetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     navigation: NavigationSelect<false> | NavigationSelect<true>;
+    'community-settings': CommunitySettingsSelect<false> | CommunitySettingsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -371,6 +383,88 @@ export interface SearchDocument {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "anonymous-profiles".
+ */
+export interface AnonymousProfile {
+  id: number;
+  anonymousIdHash: string;
+  displayName?: string | null;
+  avatarKey?: ('orbit' | 'pixel' | 'spark' | 'wave') | null;
+  status: 'active' | 'restricted' | 'blocked';
+  shortIdentityCode: string;
+  lastActiveAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions".
+ */
+export interface Reaction {
+  id: number;
+  targetType: 'post';
+  targetId: string;
+  actorType: 'anonymous';
+  anonymousProfile: number | AnonymousProfile;
+  reactionType: 'like' | 'dislike';
+  uniquenessKey: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  post: number | Post;
+  anonymousProfile: number | AnonymousProfile;
+  parentComment?: (number | null) | Comment;
+  content: string;
+  status: 'pending' | 'published' | 'hidden' | 'spam' | 'deleted';
+  depth: number;
+  replyCount: number;
+  authorDisplayNameSnapshot: string;
+  authorAvatarSnapshot?: string | null;
+  editedAt?: string | null;
+  moderationReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-events".
+ */
+export interface AnalyticsEvent {
+  id: number;
+  eventType: 'article_view' | 'share';
+  postId: string;
+  anonymousProfile: number | AnonymousProfile;
+  sessionIdHash: string;
+  deduplicationKey?: string | null;
+  metadataChannel?: ('facebook' | 'linkedin' | 'x' | 'copy_link' | 'native' | 'other') | null;
+  occurredAt: string;
+  processingStatus: 'pending' | 'processed';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-statistics".
+ */
+export interface PostStatistic {
+  id: number;
+  postId: string;
+  totalViews: number;
+  uniqueViews: number;
+  likes: number;
+  dislikes: number;
+  shares: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -420,6 +514,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'search-documents';
         value: number | SearchDocument;
+      } | null)
+    | ({
+        relationTo: 'anonymous-profiles';
+        value: number | AnonymousProfile;
+      } | null)
+    | ({
+        relationTo: 'reactions';
+        value: number | Reaction;
+      } | null)
+    | ({
+        relationTo: 'comments';
+        value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'analytics-events';
+        value: number | AnalyticsEvent;
+      } | null)
+    | ({
+        relationTo: 'post-statistics';
+        value: number | PostStatistic;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -673,6 +787,83 @@ export interface SearchDocumentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "anonymous-profiles_select".
+ */
+export interface AnonymousProfilesSelect<T extends boolean = true> {
+  anonymousIdHash?: T;
+  displayName?: T;
+  avatarKey?: T;
+  status?: T;
+  shortIdentityCode?: T;
+  lastActiveAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions_select".
+ */
+export interface ReactionsSelect<T extends boolean = true> {
+  targetType?: T;
+  targetId?: T;
+  actorType?: T;
+  anonymousProfile?: T;
+  reactionType?: T;
+  uniquenessKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments_select".
+ */
+export interface CommentsSelect<T extends boolean = true> {
+  post?: T;
+  anonymousProfile?: T;
+  parentComment?: T;
+  content?: T;
+  status?: T;
+  depth?: T;
+  replyCount?: T;
+  authorDisplayNameSnapshot?: T;
+  authorAvatarSnapshot?: T;
+  editedAt?: T;
+  moderationReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-events_select".
+ */
+export interface AnalyticsEventsSelect<T extends boolean = true> {
+  eventType?: T;
+  postId?: T;
+  anonymousProfile?: T;
+  sessionIdHash?: T;
+  deduplicationKey?: T;
+  metadataChannel?: T;
+  occurredAt?: T;
+  processingStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-statistics_select".
+ */
+export interface PostStatisticsSelect<T extends boolean = true> {
+  postId?: T;
+  totalViews?: T;
+  uniqueViews?: T;
+  likes?: T;
+  dislikes?: T;
+  shares?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -794,6 +985,24 @@ export interface Navigation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "community-settings".
+ */
+export interface CommunitySetting {
+  id: number;
+  anonymousProfilesEnabled?: boolean | null;
+  postReactionsEnabled?: boolean | null;
+  commentsEnabled?: boolean | null;
+  shareTrackingEnabled?: boolean | null;
+  articleViewTrackingEnabled?: boolean | null;
+  anonymousDisplayNameMinLength?: number | null;
+  anonymousDisplayNameMaxLength?: number | null;
+  commentMaxLength?: number | null;
+  commentReplyDepthLimit?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -845,6 +1054,24 @@ export interface NavigationSelect<T extends boolean = true> {
         url?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "community-settings_select".
+ */
+export interface CommunitySettingsSelect<T extends boolean = true> {
+  anonymousProfilesEnabled?: T;
+  postReactionsEnabled?: T;
+  commentsEnabled?: T;
+  shareTrackingEnabled?: T;
+  articleViewTrackingEnabled?: T;
+  anonymousDisplayNameMinLength?: T;
+  anonymousDisplayNameMaxLength?: T;
+  commentMaxLength?: T;
+  commentReplyDepthLimit?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

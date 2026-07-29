@@ -16,6 +16,12 @@ import { Series } from './payload/collections/Series'
 import { SearchDocuments } from './payload/collections/SearchDocuments'
 import { Tags } from './payload/collections/Tags'
 import { Users } from './payload/collections/Users'
+import { AnonymousProfiles } from './payload/collections/AnonymousProfiles'
+import { AnalyticsEvents } from './payload/collections/AnalyticsEvents'
+import { Comments } from './payload/collections/Comments'
+import { PostStatistics } from './payload/collections/PostStatistics'
+import { Reactions } from './payload/collections/Reactions'
+import { CommunitySettings } from './payload/globals/CommunitySettings'
 import { Navigation } from './payload/globals/Navigation'
 import { SiteSettings } from './payload/globals/SiteSettings'
 import { migrations } from './payload/migrations'
@@ -31,8 +37,8 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Categories, Tags, Series, Posts, SearchDocuments],
-  globals: [SiteSettings, Navigation],
+  collections: [Users, Media, Categories, Tags, Series, Posts, SearchDocuments, AnonymousProfiles, Reactions, Comments, AnalyticsEvents, PostStatistics],
+  globals: [SiteSettings, Navigation, CommunitySettings],
   i18n: {
     fallbackLanguage: 'en',
     supportedLanguages: { en, vi },
