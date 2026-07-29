@@ -107,7 +107,7 @@ export default async function PostPage({ params }: RouteProps) {
         {communityFeatures.postReactions ? <PostReactions labels={dictionary.post} postId={post.id} /> : null}
         {communityFeatures.shareTracking ? <ShareActions canonicalUrl={canonical} linkedInLabel={dictionary.post.shareLinkedIn} postId={post.id} title={post.title} xLabel={dictionary.post.shareX} /> : null}
         {communityFeatures.articleViewTracking ? <ArticleViewTracker postId={post.id} /> : null}
-        {communityFeatures.comments ? <CommentSection labels={{ empty: dictionary.post.commentsEmpty, error: dictionary.post.commentsError, heading: dictionary.post.commentsHeading }} postId={post.id} /> : null}
+        {communityFeatures.comments ? <CommentSection labels={{ commentLabel: dictionary.post.commentLabel, empty: dictionary.post.commentsEmpty, error: dictionary.post.commentsError, heading: dictionary.post.commentsHeading, nameLabel: dictionary.post.nameLabel, pending: dictionary.post.commentPending, submit: dictionary.post.commentSubmit }} postId={post.id} /> : null}
         <div className="mt-12">
           <AuthorSummary author={post.author} />
         </div>
