@@ -9,6 +9,7 @@ import {
   DEFAULT_CONTENT_LOCALE,
   getDictionary,
   getPublicNavigation,
+  getPublicCommunityFeatures,
   getPublicSiteSettings,
   LOCALE_METADATA,
   parseContentLocale,
@@ -35,10 +36,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FrontendLayout({ children }: { children: ReactNode }) {
   const locale =
     parseContentLocale((await headers()).get('x-zi-blog-locale')) ?? DEFAULT_CONTENT_LOCALE
-  const [settings, navigation, dictionary] = await Promise.all([
+  const [settings, navigation, dictionary, communityFeatures] = await Promise.all([
     getPublicSiteSettings(locale),
     getPublicNavigation(locale),
     getDictionary(locale),
+    getPublicCommunityFeatures(),
   ])
 
   return (
@@ -61,6 +63,7 @@ export default async function FrontendLayout({ children }: { children: ReactNode
           {dictionary.accessibility.skipToContent}
         </a>
         <SiteHeader
+          anonymousProfilesEnabled={communityFeatures.anonymousProfiles}
           dictionary={dictionary}
           enableDarkMode={Boolean(settings.enableDarkMode)}
           locale={locale}

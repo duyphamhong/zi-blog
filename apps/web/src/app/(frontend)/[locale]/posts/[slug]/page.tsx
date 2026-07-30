@@ -6,6 +6,9 @@ import { AuthorSummary } from '@/components/content/AuthorSummary'
 import { ResponsiveMedia } from '@/components/content/ResponsiveMedia'
 import { RichTextRenderer } from '@/components/content/RichTextRenderer'
 import { TaxonomyLinks } from '@/components/content/TaxonomyLinks'
+import { ArticleViewTracker } from '@/components/analytics/ArticleViewTracker'
+import { CommentSection } from '@/components/community/CommentSection'
+import { EngagementPanel } from '@/components/community/EngagementPanel'
 import { Container } from '@/components/layout/Container'
 import {
   getAlternatePostUrls,
@@ -16,6 +19,7 @@ import {
   formatDate,
   getDictionary,
   getPublicSiteSettings,
+  getPublicCommunityFeatures,
   localePath,
   parseContentLocale,
 } from '@/modules/platform'
@@ -43,10 +47,11 @@ export default async function PostPage({ params }: RouteProps) {
   const post = await getPublishedPostBySlug({ locale, slug: route.slug })
   if (!post) notFound()
 
-  const [dictionary, settings, seriesPosts] = await Promise.all([
+  const [dictionary, settings, seriesPosts, communityFeatures] = await Promise.all([
     getDictionary(locale),
     getPublicSiteSettings(locale),
     post.series ? getPostsBySeriesSlug({ limit: 100, locale, slug: post.series.slug }) : null,
+    getPublicCommunityFeatures(),
   ])
   const currentIndex = seriesPosts?.posts.findIndex((item) => item.slug === post.slug) ?? -1
   const previous = currentIndex > 0 ? seriesPosts?.posts[currentIndex - 1] : null
@@ -98,20 +103,9 @@ export default async function PostPage({ params }: RouteProps) {
         <div className="mt-10">
           <RichTextRenderer content={post.content} locale={locale} />
         </div>
-        <div className="mt-10 flex flex-wrap gap-4 text-sm">
-          <a
-            className="font-semibold text-cyan-700 hover:underline dark:text-cyan-300"
-            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(canonical)}`}
-          >
-            {dictionary.post.shareLinkedIn}
-          </a>
-          <a
-            className="font-semibold text-cyan-700 hover:underline dark:text-cyan-300"
-            href={`https://x.com/intent/post?url=${encodeURIComponent(canonical)}&text=${encodeURIComponent(post.title)}`}
-          >
-            {dictionary.post.shareX}
-          </a>
-        </div>
+        <EngagementPanel canonicalUrl={canonical} labels={dictionary.post} postId={post.id} reactionsEnabled={communityFeatures.postReactions} shareEnabled={communityFeatures.shareTracking} title={post.title} />
+        {communityFeatures.articleViewTracking ? <ArticleViewTracker postId={post.id} /> : null}
+        {communityFeatures.comments ? <CommentSection labels={dictionary.post} postId={post.id} /> : null}
         <div className="mt-12">
           <AuthorSummary author={post.author} />
         </div>

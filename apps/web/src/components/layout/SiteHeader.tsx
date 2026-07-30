@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { SearchDialog } from '@/modules/search/ui/SearchDialog'
+import { AnonymousProfileMenu } from '@/components/community/AnonymousProfileMenu'
 import type { PublicNavigation } from '@/modules/platform'
 import { localePath, type AppDictionary, type ContentLocale } from '@/modules/platform'
 
@@ -12,10 +13,12 @@ import { ThemeToggle } from './ThemeToggle'
 
 export function SiteHeader({
   dictionary,
+  anonymousProfilesEnabled,
   enableDarkMode,
   locale,
   navigation,
 }: {
+  anonymousProfilesEnabled: boolean
   dictionary: AppDictionary
   enableDarkMode: boolean
   locale: ContentLocale
@@ -48,6 +51,7 @@ export function SiteHeader({
         </nav>
         <div className="flex items-center gap-2">
           <SearchDialog action={localePath(locale, '/search')} dictionary={dictionary} />
+          {anonymousProfilesEnabled ? <AnonymousProfileMenu labels={dictionary.post} /> : null}
           {enableDarkMode ? <ThemeToggle ariaLabel={dictionary.accessibility.themeToggle} /> : null}
           <div className="hidden lg:block">
             <LanguageSwitcher
