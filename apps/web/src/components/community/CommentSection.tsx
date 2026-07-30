@@ -1,67 +1,171 @@
 'use client'
 
-import { type FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-type Comment = { content: string; createdAt: string; displayName: string; id: number }
-type Profile = { displayName: string | null }
+import { avatarFor } from './AnonymousProfileDialog'
+import { CommentComposer } from './CommentComposer'
+import { ANONYMOUS_PROFILE_UPDATED_EVENT } from '@/modules/identity/anonymous/constants'
+
+type Comment = {
+  avatarKey: string | null
+  content: string
+  createdAt: string
+  displayName: string
+  id: number
+}
+type Profile = { avatarKey: string | null; displayName: string | null; shortIdentityCode: string }
 type Props = {
   postId: number | string
   labels: {
+    avatarLabel: string
+    beFirstComment: string
+    cancel: string
+    commentCount: string
     commentLabel: string
-    empty: string
-    error: string
-    heading: string
+    commentPending: string
+    commentPlaceholder: string
+    commentSubmitted: string
+    commentsEmpty: string
+    commentsError: string
+    commentsHeading: string
+    editProfile: string
     nameLabel: string
-    pending: string
-    submit: string
+    newest: string
+    profileAnonymous: string
+    profileStoredLocally: string
+    saveProfile: string
+    commentSubmit: string
   }
 }
 
 export function CommentSection({ labels, postId }: Props) {
   const [comments, setComments] = useState<Comment[]>([])
-  const [content, setContent] = useState('')
-  const [displayName, setDisplayName] = useState('')
   const [failed, setFailed] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  useEffect(() => { void fetch(`/api/community/posts/${postId}/comments`).then(async (response) => response.ok ? response.json() as Promise<{ comments: Comment[] }> : Promise.reject()).then((value) => setComments(value.comments)).catch(() => setFailed(true)) }, [postId])
   useEffect(() => {
+    void fetch(`/api/community/posts/${postId}/comments`)
+      .then(async (response) =>
+        response.ok ? (response.json() as Promise<{ comments: Comment[] }>) : Promise.reject(),
+      )
+      .then((value) => setComments(value.comments))
+      .catch(() => setFailed(true))
     void fetch('/api/community/profile')
       .then(async (response) =>
         response.ok ? (response.json() as Promise<Profile>) : Promise.reject(),
       )
-      .then((value) => {
-        setProfile(value)
-        setDisplayName(value.displayName ?? '')
-      })
+      .then(setProfile)
       .catch(() => setFailed(true))
-  }, [])
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
-    setSubmitting(true)
-    setFailed(false)
-    try {
-      if (!profile?.displayName) {
-        const profileResponse = await fetch('/api/community/profile', {
-          body: JSON.stringify({ displayName }),
-          headers: { 'content-type': 'application/json' },
-          method: 'PATCH',
-        })
-        if (!profileResponse.ok) throw new Error()
-        setProfile(await profileResponse.json() as Profile)
-      }
-      const commentResponse = await fetch(`/api/community/posts/${postId}/comments`, {
-        body: JSON.stringify({ content }),
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
+  }, [postId])
+  useEffect(() => {
+    const updateProfile = (event: Event) => {
+      const value = event instanceof CustomEvent ? event.detail : null
+      if (
+        !value ||
+        typeof value !== 'object' ||
+        !('shortIdentityCode' in value) ||
+        typeof value.shortIdentityCode !== 'string' ||
+        !('displayName' in value) ||
+        (typeof value.displayName !== 'string' && value.displayName !== null) ||
+        !('avatarKey' in value) ||
+        (typeof value.avatarKey !== 'string' && value.avatarKey !== null)
+      )
+        return
+      setProfile({
+        avatarKey: value.avatarKey,
+        displayName: value.displayName,
+        shortIdentityCode: value.shortIdentityCode,
       })
-      if (!commentResponse.ok) throw new Error()
-      setContent('')
-    } catch {
-      setFailed(true)
-    } finally {
-      setSubmitting(false)
     }
-  }
-  return <section className="mt-12" aria-labelledby="comments-heading"><h2 className="text-2xl font-bold" id="comments-heading">{labels.heading}</h2>{failed ? <p role="status">{labels.error}</p> : null}{comments.length === 0 ? <p>{labels.empty}</p> : <ul>{comments.map((comment) => <li className="mt-4 rounded border p-4" key={comment.id}><strong>{comment.displayName}</strong><p>{comment.content}</p></li>)}</ul>}<form className="mt-6 grid gap-3" onSubmit={(event) => void submit(event)}>{!profile?.displayName ? <label className="grid gap-1"><span>{labels.nameLabel}</span><input className="rounded border px-3 py-2" maxLength={40} minLength={2} onChange={(event) => setDisplayName(event.target.value)} required value={displayName} /></label> : null}<label className="grid gap-1"><span>{labels.commentLabel}</span><textarea className="min-h-28 rounded border px-3 py-2" maxLength={2000} onChange={(event) => setContent(event.target.value)} required value={content} /></label><button className="w-fit rounded bg-cyan-700 px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={submitting} type="submit">{labels.submit}</button>{content === '' ? null : <p className="text-sm text-slate-500">{labels.pending}</p>}</form></section>
+    window.addEventListener(ANONYMOUS_PROFILE_UPDATED_EVENT, updateProfile)
+    return () => window.removeEventListener(ANONYMOUS_PROFILE_UPDATED_EVENT, updateProfile)
+  }, [])
+  return (
+    <section className="mt-12" aria-labelledby="comments-heading">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-black tracking-tight text-text-primary" id="comments-heading">
+          {labels.commentsHeading} ({comments.length})
+        </h2>
+        <button
+          className="min-h-10 rounded-control border border-border bg-surface px-3 text-sm font-bold text-text-secondary"
+          type="button"
+        >
+          {labels.newest}⌄
+        </button>
+      </div>
+      {profile ? (
+        <div className="mt-5">
+          <CommentComposer
+            labels={{
+              avatarLabel: labels.avatarLabel,
+              cancel: labels.cancel,
+              commentCount: labels.commentCount,
+              commentLabel: labels.commentLabel,
+              commentPending: labels.commentPending,
+              commentPlaceholder: labels.commentPlaceholder,
+              commentSubmitted: labels.commentSubmitted,
+              commentSubmit: labels.commentSubmit,
+              editProfile: labels.editProfile,
+              nameLabel: labels.nameLabel,
+              profileAnonymous: labels.profileAnonymous,
+              profileStoredLocally: labels.profileStoredLocally,
+              saveProfile: labels.saveProfile,
+            }}
+            onCommentCreated={(comment) => setComments((current) => [...current, comment])}
+            onProfileChange={setProfile}
+            postId={postId}
+            profile={profile}
+          />
+        </div>
+      ) : null}
+      {failed ? (
+        <p
+          className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+          role="status"
+        >
+          {labels.commentsError}
+        </p>
+      ) : null}
+      {comments.length === 0 && !failed ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-border-strong bg-surface p-6 text-center">
+          <p className="font-bold text-text-primary">{labels.commentsEmpty}</p>
+          <p className="mt-1 text-sm text-text-secondary">{labels.beFirstComment}</p>
+        </div>
+      ) : (
+        <ul className="mt-6 grid gap-4">
+          {comments.map((comment) => (
+            <li
+              className="rounded-2xl border border-border bg-surface p-5 shadow-sm"
+              key={comment.id}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-soft text-lg"
+                >
+                  {avatarFor(comment.avatarKey)}
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <strong>{comment.displayName}</strong>
+                    <span className="rounded bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">
+                      {labels.profileAnonymous}
+                    </span>
+                  </div>
+                  <time
+                    className="mt-1 block text-xs text-text-secondary"
+                    dateTime={comment.createdAt}
+                  >
+                    {new Intl.DateTimeFormat().format(new Date(comment.createdAt))}
+                  </time>
+                </div>
+              </div>
+              <p className="mt-4 whitespace-pre-wrap leading-7 text-text-primary">
+                {comment.content}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
 }

@@ -7,9 +7,8 @@ import { ResponsiveMedia } from '@/components/content/ResponsiveMedia'
 import { RichTextRenderer } from '@/components/content/RichTextRenderer'
 import { TaxonomyLinks } from '@/components/content/TaxonomyLinks'
 import { ArticleViewTracker } from '@/components/analytics/ArticleViewTracker'
-import { PostReactions } from '@/components/community/PostReactions'
 import { CommentSection } from '@/components/community/CommentSection'
-import { ShareActions } from '@/components/community/ShareActions'
+import { EngagementPanel } from '@/components/community/EngagementPanel'
 import { Container } from '@/components/layout/Container'
 import {
   getAlternatePostUrls,
@@ -104,10 +103,9 @@ export default async function PostPage({ params }: RouteProps) {
         <div className="mt-10">
           <RichTextRenderer content={post.content} locale={locale} />
         </div>
-        {communityFeatures.postReactions ? <PostReactions labels={dictionary.post} postId={post.id} /> : null}
-        {communityFeatures.shareTracking ? <ShareActions canonicalUrl={canonical} linkedInLabel={dictionary.post.shareLinkedIn} postId={post.id} title={post.title} xLabel={dictionary.post.shareX} /> : null}
+        <EngagementPanel canonicalUrl={canonical} labels={dictionary.post} postId={post.id} reactionsEnabled={communityFeatures.postReactions} shareEnabled={communityFeatures.shareTracking} title={post.title} />
         {communityFeatures.articleViewTracking ? <ArticleViewTracker postId={post.id} /> : null}
-        {communityFeatures.comments ? <CommentSection labels={{ commentLabel: dictionary.post.commentLabel, empty: dictionary.post.commentsEmpty, error: dictionary.post.commentsError, heading: dictionary.post.commentsHeading, nameLabel: dictionary.post.nameLabel, pending: dictionary.post.commentPending, submit: dictionary.post.commentSubmit }} postId={post.id} /> : null}
+        {communityFeatures.comments ? <CommentSection labels={dictionary.post} postId={post.id} /> : null}
         <div className="mt-12">
           <AuthorSummary author={post.author} />
         </div>

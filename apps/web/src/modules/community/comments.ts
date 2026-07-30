@@ -10,5 +10,13 @@ export function normalizeCommentContent(value: unknown, maxLength: number): stri
 
 export async function getPublishedComments(postId: number | string) {
   const payload = await getPayloadClient()
-  return payload.find({ collection: COMMENTS_COLLECTION, depth: 0, limit: 100, overrideAccess: true, pagination: false, sort: 'createdAt', where: { and: [{ post: { equals: postId } }, { status: { equals: 'published' } }] } })
+  return payload.find({
+    collection: COMMENTS_COLLECTION,
+    depth: 1,
+    limit: 100,
+    overrideAccess: true,
+    pagination: false,
+    sort: 'createdAt',
+    where: { and: [{ post: { equals: postId } }, { status: { equals: 'published' } }] },
+  })
 }
