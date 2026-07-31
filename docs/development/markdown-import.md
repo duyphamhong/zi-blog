@@ -38,6 +38,15 @@ are required by the post schema. Unknown metadata is ignored.
 
 ## Admin workflow
 
+### Bilingual draft import
+
+On the **Create Post** page, authorized staff can use **Import VI + EN Markdown**
+to upload one Vietnamese and one English source file. The server validates both
+files and slug conflicts before writing, then creates one draft with both
+localized values. Shared metadata is completed in the normal edit page. Source
+files are not persisted, and the import neither publishes nor revalidates
+public content.
+
 1. Open a post and select the Vietnamese or English locale to import.
 2. Expand **Markdown Import**.
 3. Paste the complete source into **Zi-Blog Markdown source**.

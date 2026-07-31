@@ -35,6 +35,11 @@ export const Posts: CollectionConfig = {
     update: postUpdateAccess,
   },
   admin: {
+    components: {
+      edit: {
+        beforeDocumentControls: ['@/payload/components/BilingualMarkdownImportButton#BilingualMarkdownImportButton'],
+      },
+    },
     defaultColumns: ['title', '_status', 'author', 'category', 'publishedAt'],
     preview: (data, { locale }) =>
       `${env.SERVER_URL}/${locale || 'vi'}/preview/posts/${String(data.id ?? '')}`,
