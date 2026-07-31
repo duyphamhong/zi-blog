@@ -19,11 +19,11 @@ export const Comments: CollectionConfig = {
   admin: { defaultColumns: ['post', 'authorDisplayNameSnapshot', 'status', 'createdAt'] },
   fields: [
     { name: 'post', type: 'relationship', relationTo: 'posts', required: true, index: true },
+    // Retained only to read historic records. New comments store author details as snapshots.
     {
       name: 'anonymousProfile',
       type: 'relationship',
       relationTo: 'anonymous-profiles',
-      required: true,
       index: true,
     },
     { name: 'parentComment', type: 'relationship', relationTo: 'comments', index: true },

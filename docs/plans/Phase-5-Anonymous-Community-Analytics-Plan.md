@@ -4,14 +4,19 @@
 
 Implement the first anonymous community and engagement layer for Zi-Blog.
 
+> Implementation update (2026-07-30): anonymous profile details are browser-local data.
+> New anonymous-profile database records are not created. A submitted comment stores its
+> display name and avatar as an immutable snapshot; reaction handling stores aggregate
+> counters only; analytics stores a hashed browser session for view deduplication. Existing
+> profile relationships remain readable only for historical data migration.
+
 Phase 5 must deliver:
 
-1. Anonymous profiles identified through a secure browser cookie.
+1. Anonymous display name and avatar stored in browser local storage.
 2. Anonymous post reactions with `like` and `dislike`.
 3. A complete but disabled anonymous comment capability, including backend, admin moderation, and frontend components.
 4. Admin-managed feature flags that can enable or disable community capabilities without a deployment.
 5. Recording and aggregation for:
-   - Total anonymous profiles
    - Total likes
    - Total dislikes
    - Total article views
@@ -33,11 +38,11 @@ The implementation must preserve the modular-monolith architecture and keep busi
   - `analytics`: event ingestion, aggregation, and dashboard read models
   - `moderation`: anonymous-name validation, comment moderation, and abuse controls
   - `platform`: feature configuration and shared infrastructure
-- Anonymous users are identified primarily by a secure cookie, not by IP address.
+- Anonymous display details are held in browser local storage, not a server profile record.
 - IP data is used only for short-lived rate limiting and abuse detection. Do not store raw IP addresses in persistent domain collections.
 - Commenting is implemented in this phase but disabled by default.
 - Like and dislike apply to posts in Phase 5. The reaction model must remain extensible to comments and other targets later.
-- A user may have only one active reaction per target. Changing from `like` to `dislike`, or the reverse, replaces the previous reaction atomically.
+- Reactions are aggregate counters. They are not identity-based and do not retain a per-browser toggle state.
 - Share metrics represent share-button actions or share intent. They do not guarantee that a social-network post was successfully published.
 - View tracking follows the existing event-ingestion and aggregation design. Do not increment a `viewCount` field directly during page rendering.
 - No Kafka, Redis, external analytics platform, or new microservice is introduced in this phase.

@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 
 import { AnonymousProfileDialog, avatarFor } from './AnonymousProfileDialog'
-import { ANONYMOUS_PROFILE_UPDATED_EVENT } from '@/modules/identity/anonymous/constants'
+import { getBrowserAnonymousProfile, type BrowserAnonymousProfile } from './anonymousProfileStorage'
 
-type Profile = { avatarKey: string | null; displayName: string | null; shortIdentityCode: string }
+type Profile = BrowserAnonymousProfile
 type Props = {
   labels: {
     avatarLabel: string
@@ -21,17 +21,11 @@ type Props = {
 export function AnonymousProfileMenu({ labels }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null)
   useEffect(() => {
-    void fetch('/api/community/profile')
-      .then(async (response) => (response.ok ? (response.json() as Promise<Profile>) : null))
-      .then(setProfile)
-      .catch(() => setProfile(null))
+    queueMicrotask(() => setProfile(getBrowserAnonymousProfile()))
   }, [])
   if (!profile) return null
   function handleSave(nextProfile: Profile): void {
     setProfile(nextProfile)
-    window.dispatchEvent(
-      new CustomEvent<Profile>(ANONYMOUS_PROFILE_UPDATED_EVENT, { detail: nextProfile }),
-    )
   }
   return (
     <AnonymousProfileDialog

@@ -28,9 +28,17 @@ export const enDictionary = {
     tryAgain: 'Try again',
   },
   footer: {
+    contactSupport: 'Contact & support',
+    copyright: 'Copyright:',
     content: 'Practical engineering notes for Pure Software Engineers.',
+    facebook: 'Facebook',
     navigation: 'Footer navigation',
+    quickLinks: 'Quick links',
     rights: 'All rights reserved.',
+    support: 'Support:',
+    system: 'System',
+    version: 'Version:',
+    zalo: 'Zalo:',
   },
   home: {
     browseCategories: 'Browse categories',

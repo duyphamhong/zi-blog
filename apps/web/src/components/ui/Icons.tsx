@@ -31,6 +31,43 @@ export function BookIcon(props: IconProps) {
   )
 }
 
+export function CopyrightIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M14.5 9.75a3.5 3.5 0 1 0 0 4.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </IconFrame>
+  )
+}
+
+export function HeadsetIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <path
+        d="M4.5 13v-1a7.5 7.5 0 0 1 15 0v1M5 13h2.5v5H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Zm14 0h-2.5v5H19a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1Zm-2.5 5c0 1.1-.9 2-2 2H12"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </IconFrame>
+  )
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 11v5m0-8v.01" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </IconFrame>
+  )
+}
+
 export function CloseIcon(props: IconProps) {
   return (
     <IconFrame {...props}>
@@ -70,6 +107,26 @@ export function SearchIcon(props: IconProps) {
     <IconFrame {...props}>
       <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
       <path d="m16 16 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </IconFrame>
+  )
+}
+
+export function ShieldIcon(props: IconProps) {
+  return (
+    <IconFrame {...props}>
+      <path
+        d="M12 3.5 19 6v5.7c0 4.3-2.8 7.7-7 8.8-4.2-1.1-7-4.5-7-8.8V6l7-2.5Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m9 12 2 2 4-4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
     </IconFrame>
   )
 }

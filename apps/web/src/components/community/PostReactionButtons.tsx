@@ -12,7 +12,6 @@ type Counts = { dislikes: number; likes: number }
 const initialCounts: Counts = { dislikes: 0, likes: 0 }
 
 export function PostReactionButtons({ labels, postId }: Props) {
-  const [reaction, setReaction] = useState<Reaction>(null)
   const [counts, setCounts] = useState<Counts>(initialCounts)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
@@ -27,26 +26,20 @@ export function PostReactionButtons({ labels, postId }: Props) {
       )
       .then((value) => {
         setCounts(value.counts)
-        setReaction(value.reaction)
       })
       .catch(() => setError(labels.reactionError))
   }, [labels.reactionError, route])
 
   async function change(next: Exclude<Reaction, null>): Promise<void> {
     if (pending) return
-    const previousReaction = reaction
     const previousCounts = counts
-    const removal = reaction === next
     const nextCounts = {
-      dislikes:
-        counts.dislikes +
-        (next === 'dislike' ? (removal ? -1 : 1) : reaction === 'dislike' ? -1 : 0),
-      likes: counts.likes + (next === 'like' ? (removal ? -1 : 1) : reaction === 'like' ? -1 : 0),
+      dislikes: counts.dislikes + (next === 'dislike' ? 1 : 0),
+      likes: counts.likes + (next === 'like' ? 1 : 0),
     }
     setError('')
     setPending(true)
     setCounts(nextCounts)
-    setReaction(removal ? null : next)
     try {
       const response = await fetch(route, {
         body: JSON.stringify({ reactionType: next }),
@@ -56,10 +49,8 @@ export function PostReactionButtons({ labels, postId }: Props) {
       if (!response.ok) throw new Error()
       const value = (await response.json()) as { counts: Counts; reaction: Reaction }
       setCounts(value.counts)
-      setReaction(value.reaction)
     } catch {
       setCounts(previousCounts)
-      setReaction(previousReaction)
       setError(labels.reactionError)
     } finally {
       setPending(false)
@@ -73,20 +64,20 @@ export function PostReactionButtons({ labels, postId }: Props) {
     <div className="flex flex-1 flex-wrap gap-3">
       <button
         aria-label={`${labels.like}: ${counts.likes}`}
-        aria-pressed={reaction === 'like'}
-        className={buttonClass(reaction === 'like')}
+        aria-pressed={false}
+        className={buttonClass(false)}
         disabled={pending}
         onClick={() => void change('like')}
         type="button"
       >
         <span aria-hidden="true">👍</span>
-        {reaction === 'like' ? labels.activeLike : labels.like}
+        {labels.like}
         <span>{counts.likes}</span>
       </button>
       <button
         aria-label={`${labels.dislike}: ${counts.dislikes}`}
-        aria-pressed={reaction === 'dislike'}
-        className={buttonClass(reaction === 'dislike')}
+        aria-pressed={false}
+        className={buttonClass(false)}
         disabled={pending}
         onClick={() => void change('dislike')}
         type="button"

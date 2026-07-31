@@ -2,7 +2,12 @@
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
-type Profile = { avatarKey: string | null; displayName: string | null; shortIdentityCode: string }
+import {
+  saveBrowserAnonymousProfile,
+  type BrowserAnonymousProfile,
+} from './anonymousProfileStorage'
+
+type Profile = BrowserAnonymousProfile
 type Props = {
   labels: {
     avatarLabel: string
@@ -40,13 +45,13 @@ export function AnonymousProfileDialog({ labels, onSave, profile, trigger }: Pro
   async function save(): Promise<void> {
     setSaving(true)
     try {
-      const response = await fetch('/api/community/profile', {
-        body: JSON.stringify({ avatarKey, displayName }),
-        headers: { 'content-type': 'application/json' },
-        method: 'PATCH',
-      })
-      if (!response.ok) throw new Error()
-      onSave((await response.json()) as Profile)
+      const nextProfile = {
+        avatarKey,
+        displayName: displayName.trim(),
+        shortIdentityCode: profile.shortIdentityCode,
+      }
+      saveBrowserAnonymousProfile(nextProfile)
+      onSave(nextProfile)
       setOpen(false)
     } finally {
       setSaving(false)

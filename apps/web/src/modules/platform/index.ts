@@ -1,6 +1,7 @@
 export * from './cache/paths'
 export * from './cache/tags'
 export * from './community'
+export * from './footer'
 export * from './i18n'
 export * from './queries/publicAuthor'
 export * from './queries/publicConfig'

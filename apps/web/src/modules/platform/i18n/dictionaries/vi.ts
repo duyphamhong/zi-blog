@@ -30,9 +30,17 @@ export const viDictionary = {
     tryAgain: 'Thử lại',
   },
   footer: {
+    contactSupport: 'Liên hệ & Hỗ trợ',
+    copyright: 'Bản quyền:',
     content: 'Ghi chép kỹ thuật thực tiễn dành cho các kỹ sư phần mềm thực thụ.',
+    facebook: 'Facebook',
     navigation: 'Điều hướng chân trang',
+    quickLinks: 'Liên kết nhanh',
     rights: 'Đã đăng ký bản quyền.',
+    support: 'Hỗ trợ:',
+    system: 'Hệ thống',
+    version: 'Phiên bản:',
+    zalo: 'Zalo:',
   },
   home: {
     browseCategories: 'Duyệt chuyên mục',

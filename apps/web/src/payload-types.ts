@@ -418,7 +418,7 @@ export interface Reaction {
 export interface Comment {
   id: number;
   post: number | Post;
-  anonymousProfile: number | AnonymousProfile;
+  anonymousProfile?: (number | null) | AnonymousProfile;
   parentComment?: (number | null) | Comment;
   content: string;
   status: 'pending' | 'published' | 'hidden' | 'spam' | 'deleted';
@@ -439,7 +439,7 @@ export interface AnalyticsEvent {
   id: number;
   eventType: 'article_view' | 'share';
   postId: string;
-  anonymousProfile: number | AnonymousProfile;
+  anonymousProfile?: (number | null) | AnonymousProfile;
   sessionIdHash: string;
   deduplicationKey?: string | null;
   metadataChannel?: ('facebook' | 'linkedin' | 'x' | 'copy_link' | 'native' | 'other') | null;
