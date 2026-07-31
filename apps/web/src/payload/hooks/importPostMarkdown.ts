@@ -1,9 +1,6 @@
-import { convertMarkdownToLexical, editorConfigFactory } from '@payloadcms/richtext-lexical'
 import {
   APIError,
   type CollectionBeforeChangeHook,
-  type RichTextField,
-  type SanitizedConfig,
 } from 'payload'
 
 import {
@@ -11,33 +8,12 @@ import {
   MarkdownImportError,
   type MarkdownImportPostData,
 } from '@/modules/content/markdown-import'
-
-function isPostContentField(field: unknown): field is RichTextField {
-  return Boolean(
-    field &&
-      typeof field === 'object' &&
-      'type' in field &&
-      field.type === 'richText' &&
-      'name' in field &&
-      field.name === 'content',
-  )
-}
+import { convertMarkdownToPostLexical } from '@/modules/content/markdown-import/convert-markdown-to-post-lexical'
 
 function asMarkdownImportPostData(value: unknown): MarkdownImportPostData | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? Object.fromEntries(Object.entries(value))
     : null
-}
-
-function getPostContentEditorConfig(config: SanitizedConfig) {
-  const posts = config.collections.find(({ slug }) => slug === 'posts')
-  const contentField = posts?.fields.find(isPostContentField)
-
-  if (!contentField) {
-    throw new MarkdownImportError('LEXICAL_CONVERSION_FAILED')
-  }
-
-  return editorConfigFactory.fromField({ field: contentField })
 }
 
 export const importPostMarkdown: CollectionBeforeChangeHook = ({
@@ -47,13 +23,8 @@ export const importPostMarkdown: CollectionBeforeChangeHook = ({
   req,
 }) => {
   try {
-    const editorConfig = getPostContentEditorConfig(req.payload.config)
     const result = importMarkdownIntoPost({
-      convertMarkdown: (markdown) =>
-        convertMarkdownToLexical({
-          editorConfig,
-          markdown,
-        }),
+      convertMarkdown: (markdown) => convertMarkdownToPostLexical(markdown, req.payload.config),
       data,
       operation,
       originalDoc: asMarkdownImportPostData(originalDoc),

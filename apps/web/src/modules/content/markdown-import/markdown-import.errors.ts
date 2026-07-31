@@ -6,6 +6,9 @@ export type MarkdownImportErrorCode =
   | 'INVALID_SOURCE_TYPE'
   | 'LEXICAL_CONVERSION_FAILED'
   | 'MISSING_CONTENT_DELIMITER'
+  | 'MISSING_REQUIRED_METADATA'
+  | 'DUPLICATE_LOCALIZED_SLUG'
+  | 'UNAUTHORIZED_IMPORT'
 
 const errorMessages: Record<MarkdownImportErrorCode, string> = {
   EMPTY_CONTENT: 'add Markdown content after the standalone CONTENT: line.',
@@ -15,6 +18,9 @@ const errorMessages: Record<MarkdownImportErrorCode, string> = {
   INVALID_SOURCE_TYPE: 'paste the article as text in the Markdown source field.',
   LEXICAL_CONVERSION_FAILED: 'the Markdown could not be converted to Content.',
   MISSING_CONTENT_DELIMITER: 'add a standalone CONTENT: line before the article body.',
+  MISSING_REQUIRED_METADATA: 'include non-empty TITLE, SLUG, and EXCERPT metadata.',
+  DUPLICATE_LOCALIZED_SLUG: 'the localized slug is already in use.',
+  UNAUTHORIZED_IMPORT: 'you are not allowed to import bilingual posts.',
 }
 
 export class MarkdownImportError extends Error {

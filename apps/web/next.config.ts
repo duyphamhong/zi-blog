@@ -14,6 +14,10 @@ const mediaUsesLoopbackHost = ['localhost', '127.0.0.1', '[::1]'].includes(media
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   output: 'standalone',
+  // Payload's Markdown converter and the configured editor must share the same
+  // Lexical module instance. Externalize the base package without bypassing
+  // Payload's own server-side CSS handling.
+  serverExternalPackages: ['lexical'],
   images: {
     dangerouslyAllowLocalIP: mediaUsesLoopbackHost,
     localPatterns: [
