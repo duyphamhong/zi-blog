@@ -47,13 +47,19 @@ export function CommentComposer({
   const [submitted, setSubmitted] = useState(false)
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    if (!profile.displayName || !content.trim()) return
+    if (!profile.avatarKey || !profile.displayName || !content.trim()) return
     setFailed(false)
     setPending(true)
     setSubmitted(false)
     try {
       const response = await fetch(`/api/community/posts/${postId}/comments`, {
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content,
+          profile: {
+            avatarKey: profile.avatarKey,
+            displayName: profile.displayName,
+          },
+        }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
       })
@@ -106,7 +112,7 @@ export function CommentComposer({
         </p>
         <button
           className="min-h-11 rounded-control bg-brand px-5 font-extrabold text-white shadow-sm transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!profile.displayName || !content.trim() || pending}
+          disabled={!profile.avatarKey || !profile.displayName || !content.trim() || pending}
           type="submit"
         >
           {labels.commentSubmit}

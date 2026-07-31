@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { avatarFor } from './AnonymousProfileDialog'
 import { CommentComposer } from './CommentComposer'
 import { ANONYMOUS_PROFILE_UPDATED_EVENT } from '@/modules/identity/anonymous/constants'
+import { getBrowserAnonymousProfile, type BrowserAnonymousProfile } from './anonymousProfileStorage'
 
 type Comment = {
   avatarKey: string | null
@@ -13,7 +14,7 @@ type Comment = {
   displayName: string
   id: number
 }
-type Profile = { avatarKey: string | null; displayName: string | null; shortIdentityCode: string }
+type Profile = BrowserAnonymousProfile
 type Props = {
   postId: number | string
   labels: {
@@ -49,12 +50,7 @@ export function CommentSection({ labels, postId }: Props) {
       )
       .then((value) => setComments(value.comments))
       .catch(() => setFailed(true))
-    void fetch('/api/community/profile')
-      .then(async (response) =>
-        response.ok ? (response.json() as Promise<Profile>) : Promise.reject(),
-      )
-      .then(setProfile)
-      .catch(() => setFailed(true))
+    queueMicrotask(() => setProfile(getBrowserAnonymousProfile()))
   }, [postId])
   useEffect(() => {
     const updateProfile = (event: Event) => {

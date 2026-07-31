@@ -1,13 +1,34 @@
 import { NextResponse } from 'next/server'
 
 import { getPublishedComments, normalizeCommentContent } from '@/modules/community'
-import { resolveAnonymousActor } from '@/modules/identity/anonymous'
+import { ANONYMOUS_AVATAR_KEYS } from '@/modules/identity/anonymous/constants'
 import { COMMUNITY_LIMITS, getPublicCommunityFeatures } from '@/modules/platform/community'
 import { getPayloadClient } from '@/shared/payload/client'
 
 type RouteContext = { params: Promise<{ postId: string }> }
 const FEATURE_DISABLED_RESPONSE = { error: 'feature_disabled' }
 const INVALID_COMMENT_RESPONSE = { error: 'invalid_comment' }
+
+function commentProfile(value: unknown): { avatarKey: string | null; displayName: string } | null {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    !('displayName' in value) ||
+    typeof value.displayName !== 'string'
+  )
+    return null
+  const displayName = value.displayName.replace(/\s+/g, ' ').trim()
+  const avatarKey =
+    'avatarKey' in value && typeof value.avatarKey === 'string' ? value.avatarKey : null
+  if (
+    displayName.length < COMMUNITY_LIMITS.displayNameMinLength ||
+    displayName.length > COMMUNITY_LIMITS.displayNameMaxLength ||
+    !avatarKey ||
+    !(ANONYMOUS_AVATAR_KEYS as readonly string[]).includes(avatarKey)
+  )
+    return null
+  return { avatarKey, displayName }
+}
 
 export async function GET(_: Request, context: RouteContext): Promise<NextResponse> {
   if (!(await getPublicCommunityFeatures()).comments)
@@ -16,12 +37,8 @@ export async function GET(_: Request, context: RouteContext): Promise<NextRespon
   const comments = await getPublishedComments(postId)
   return NextResponse.json({
     comments: comments.docs.map((comment) => {
-      const profile =
-        comment.anonymousProfile && typeof comment.anonymousProfile === 'object'
-          ? comment.anonymousProfile
-          : null
       return {
-        avatarKey: profile?.avatarKey ?? comment.authorAvatarSnapshot ?? null,
+        avatarKey: comment.authorAvatarSnapshot ?? null,
         content: comment.content,
         createdAt: comment.createdAt,
         displayName: comment.authorDisplayNameSnapshot,
@@ -41,9 +58,10 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
     COMMUNITY_LIMITS.commentMaxLength,
   )
   if (!content) return NextResponse.json(INVALID_COMMENT_RESPONSE, { status: 400 })
-  const actor = await resolveAnonymousActor()
-  if (actor.status !== 'active' || !actor.displayName)
-    return NextResponse.json({ error: 'anonymous_profile_not_ready' }, { status: 403 })
+  const profile = commentProfile(
+    body && typeof body === 'object' && 'profile' in body ? body.profile : null,
+  )
+  if (!profile) return NextResponse.json({ error: 'anonymous_profile_not_ready' }, { status: 403 })
   const payload = await getPayloadClient()
   const post = await payload.find({
     collection: 'posts',
@@ -64,9 +82,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   const comment = await payload.create({
     collection: 'comments',
     data: {
-      anonymousProfile: actor.profileId,
-      authorAvatarSnapshot: actor.avatarKey ?? undefined,
-      authorDisplayNameSnapshot: actor.displayName,
+      authorAvatarSnapshot: profile.avatarKey,
+      authorDisplayNameSnapshot: profile.displayName,
       content,
       depth: 0,
       post: Number(postId),
