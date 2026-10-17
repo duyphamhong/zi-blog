@@ -14,7 +14,8 @@ import { lexicalDocument } from '@/payload/seed/content'
 let payload: Payload
 const suffix = `${Date.now()}-${Math.round(Math.random() * 10000)}`
 const POSTGRES_BTREE_INDEX_ENTRY_LIMIT = 2704
-const LONG_SEARCH_CONTENT = 'Searchable architecture boundary. '.repeat(200)
+const PAYLOAD_DEFAULT_MAX_TEXT_LENGTH = 40_000
+const LONG_SEARCH_CONTENT = 'Searchable architecture boundary. '.repeat(1_500)
 const ids: {
   category?: number
   editor?: number
@@ -283,6 +284,9 @@ describe('publication boundary', () => {
       },
     })
     expect(longSearchProjection.docs).toHaveLength(1)
+    expect(longSearchProjection.docs[0]?.plainTextContent?.length ?? 0).toBeGreaterThan(
+      PAYLOAD_DEFAULT_MAX_TEXT_LENGTH,
+    )
     expect(longSearchProjection.docs[0]?.normalizedSearchText.length).toBeGreaterThan(
       POSTGRES_BTREE_INDEX_ENTRY_LIMIT,
     )
