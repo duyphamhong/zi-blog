@@ -1,7 +1,13 @@
-name: Provision Zi-Blog TLS certificate
+name: Manage Zi-Blog TLS certificate
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 18 * * *'
+
+concurrency:
+  group: zi-blog-production
+  cancel-in-progress: false
 
 jobs:
   provision:
@@ -48,7 +54,7 @@ jobs:
           fi
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Issue certificate on VPS
+      - name: Renew or issue certificate on VPS
         run: |
           set -euo pipefail
           ssh -p "${VPS_SSH_PORT:-22}" "$VPS_SSH_USER@$VPS_HOST" "export CERTBOT_EMAIL='$CERTBOT_EMAIL'; bash -s" <<'EOF'
@@ -57,23 +63,51 @@ jobs:
           GATEWAY_DIR=/opt/nginx-gateway
           cd "$GATEWAY_DIR"
           test -f .env
-          mkdir -p certbot/conf certbot/www
 
-          docker run --rm \
-            -v "$PWD/certbot/conf:/etc/letsencrypt" \
-            -v "$PWD/certbot/www:/var/www/certbot" \
-            certbot/certbot:latest certonly \
-            --webroot \
-            -w /var/www/certbot \
-            --cert-name blog-appzihub \
-            -d blog.appzihub.fun \
-            --email "$CERTBOT_EMAIL" \
-            --agree-tos \
-            --no-eff-email \
-            --non-interactive
+          NGINX_CONTAINER_ID="$(docker compose --env-file .env ps -q nginx)"
+          test -n "$NGINX_CONTAINER_ID"
+          CERTBOT_CONF_DIR="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/etc/letsencrypt"}}{{.Source}}{{end}}{{end}}' "$NGINX_CONTAINER_ID")"
+          CERTBOT_WWW_DIR="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/www/certbot"}}{{.Source}}{{end}}{{end}}' "$NGINX_CONTAINER_ID")"
+          test -n "$CERTBOT_CONF_DIR"
+          test -n "$CERTBOT_WWW_DIR"
+          mkdir -p "$CERTBOT_CONF_DIR" "$CERTBOT_WWW_DIR"
 
-          test -s certbot/conf/live/blog-appzihub/fullchain.pem
-          test -s certbot/conf/live/blog-appzihub/privkey.pem
+          if test -s "$CERTBOT_CONF_DIR/live/blog-appzihub/fullchain.pem" && test -s "$CERTBOT_CONF_DIR/live/blog-appzihub/privkey.pem"; then
+            docker run --rm \
+              -v "$CERTBOT_CONF_DIR:/etc/letsencrypt" \
+              -v "$CERTBOT_WWW_DIR:/var/www/certbot" \
+              certbot/certbot:latest renew \
+              --webroot \
+              -w /var/www/certbot \
+              --cert-name blog-appzihub \
+              --non-interactive
+          else
+            docker run --rm \
+              -v "$CERTBOT_CONF_DIR:/etc/letsencrypt" \
+              -v "$CERTBOT_WWW_DIR:/var/www/certbot" \
+              certbot/certbot:latest certonly \
+              --webroot \
+              -w /var/www/certbot \
+              --cert-name blog-appzihub \
+              -d blog.appzihub.fun \
+              --email "$CERTBOT_EMAIL" \
+              --agree-tos \
+              --no-eff-email \
+              --non-interactive
+          fi
+
+          test -s "$CERTBOT_CONF_DIR/live/blog-appzihub/fullchain.pem"
+          test -s "$CERTBOT_CONF_DIR/live/blog-appzihub/privkey.pem"
           docker compose --env-file .env exec -T nginx nginx -t
+          docker compose --env-file .env exec -T nginx nginx -T 2>&1 | grep -F 'ssl_certificate /etc/letsencrypt/live/blog-appzihub/fullchain.pem'
           docker compose --env-file .env exec -T nginx nginx -s reload
           EOF
+
+      - name: Verify public certificate
+        run: |
+          set -euo pipefail
+          not_after="$(echo | openssl s_client -connect blog.appzihub.fun:443 -servername blog.appzihub.fun 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2-)"
+          test -n "$not_after"
+          expiry_epoch="$(date --date="$not_after" +%s)"
+          minimum_epoch="$(date --date='+30 days' +%s)"
+          test "$expiry_epoch" -gt "$minimum_epoch"
